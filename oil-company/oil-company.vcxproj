@@ -127,7 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DataAlarm.cpp" />
+    <ClCompile Include="DataOptimization.cpp" />
+    <ClCompile Include="DataSCADA.cpp" />
+    <ClCompile Include="GlobalFunctions.cpp" />
     <ClCompile Include="oil-company.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DataAlarm.h" />
+    <ClInclude Include="DataOptimization.h" />
+    <ClInclude Include="DataSCADA.h" />
+    <ClInclude Include="GlobalFunctions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
