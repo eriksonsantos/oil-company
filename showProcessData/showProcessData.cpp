@@ -8,8 +8,16 @@ HANDLE hCreateNamedPipe;
 char message[47];
 DWORD dwszInputBuffer = sizeof(message);
 DWORD dwszOutputBuffer = sizeof(message);
-
 using namespace std;
+
+struct ProcessMessage {
+    string  NSEQ,
+            NIVEL,
+            PRESSAO_G,
+            PRESSAO_T,
+            timeStamp,
+            TEMP;
+};
 
 int main()
 {

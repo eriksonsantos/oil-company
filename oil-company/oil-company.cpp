@@ -4,28 +4,22 @@
 #include <Windows.h>
 #include <process.h>
 
+#define ProjetsQTD 6
+
 using namespace std;
 int main()
 { 
-	bool bCreateProcess[6] = { NULL };
-	STARTUPINFO si[6];
-	PROCESS_INFORMATION pi[6];
+	bool bCreateProcess[ProjetsQTD] = { NULL };
+	STARTUPINFO si[ProjetsQTD];
+	PROCESS_INFORMATION pi[ProjetsQTD];
+	int i;
 
-	ZeroMemory(&si[0], sizeof(si[0]));
-	si[0].cb = sizeof(si[0]);
-	ZeroMemory(&pi[0], sizeof(pi[0]));
+	for (i = 0;i < ProjetsQTD; i++) {
 
-	ZeroMemory(&si[1], sizeof(si[1]));
-	si[1].cb = sizeof(si[1]);
-	ZeroMemory(&pi[1], sizeof(pi[1]));
-
-	ZeroMemory(&si[2], sizeof(si[2]));
-	si[2].cb = sizeof(si[2]);
-	ZeroMemory(&pi[2], sizeof(pi[2]));
-
-	ZeroMemory(&si[3], sizeof(si[3]));
-	si[3].cb = sizeof(si[3]);
-	ZeroMemory(&pi[3], sizeof(pi[3]));
+		ZeroMemory(&si[i], sizeof(si[i]));
+		si[i].cb = sizeof(si[i]);
+		ZeroMemory(&pi[i], sizeof(pi[i]));
+	}
 
 
 	bCreateProcess[0] = CreateProcess(
@@ -84,19 +78,15 @@ int main()
 
 	cout << endl;
 
-	WaitForSingleObject(pi[0].hProcess, INFINITE);
-	WaitForSingleObject(pi[1].hProcess, INFINITE);
-	WaitForSingleObject(pi[2].hProcess, INFINITE);
+	for (i = 0; i < 3; i++) 
+		WaitForSingleObject(pi[i].hProcess, INFINITE);
 
-
-	CloseHandle(pi[0].hThread);
-	CloseHandle(pi[0].hProcess);
-
-	CloseHandle(pi[1].hThread);
-	CloseHandle(pi[1].hProcess);
-
-	CloseHandle(pi[2].hThread);
-	CloseHandle(pi[2].hProcess);
+	for (i = 0; i < 3; i++) {
+		CloseHandle(pi[i].hThread);
+		CloseHandle(pi[i].hProcess);
+	}
+	
+	
 	
 	return 0;
 }
