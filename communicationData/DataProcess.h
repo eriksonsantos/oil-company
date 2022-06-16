@@ -6,7 +6,7 @@
 
 using namespace std;
 
-class dataSCADA {
+class dataProcess {
 public:
 	int NSEQ;
 	__int8 TIPO = 22;
@@ -16,6 +16,6 @@ public:
 	string NIVEL;
 	string timeStamp;
 
-	dataSCADA();
+	dataProcess();
 	string GenerateData();
 };

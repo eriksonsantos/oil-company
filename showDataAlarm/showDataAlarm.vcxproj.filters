@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ShowOptimizationData.cpp">
+    <ClCompile Include="showDataAlarm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,146 +1,102 @@
 // oil-company.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 #include <iostream>
-#include "DataOptimization.h"
 #include <Windows.h>
-#include "DataSCADA.h"
-#include "DataAlarm.h"
 #include <process.h>
 
-unsigned __stdcall  ThreadSCADA(LPVOID index);
-unsigned __stdcall  ThreadAlarm(LPVOID index);
-unsigned __stdcall ThreadOptimization(LPVOID index);
-
-HANDLE Mutex;
-HANDLE hCreateNamedPipe;
-bool bConnectNamedPipe;
-bool bWriteFile;
-string pipeFile[200];
-DWORD dwszInputBuffer;
-DWORD dwszOutputBuffer;
-DWORD dwNoBytesRead;
+using namespace std;
 int main()
 { 
-    srand((unsigned)time(0));
-    
-    HANDLE hThreads[3];
-    unsigned dwThreadId;
-    string pipeFile[200];
-    dwszInputBuffer = sizeof(pipeFile);
-    dwszOutputBuffer = sizeof(pipeFile);
+	bool bCreateProcess[6] = { NULL };
+	STARTUPINFO si[6];
+	PROCESS_INFORMATION pi[6];
 
-    Mutex = CreateMutex(NULL, FALSE, NULL);
-    if (Mutex == NULL) 
-        cout << "Error when create Mutex. Error type: " << GetLastError();
-    
-    hCreateNamedPipe = CreateNamedPipe(
-        L"\\\\.\\pipe\\MemoryList",
-        PIPE_ACCESS_DUPLEX,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
-        PIPE_UNLIMITED_INSTANCES,
-        dwszOutputBuffer,
-        dwszInputBuffer,
-        0,
-        NULL
-    );
+	ZeroMemory(&si[0], sizeof(si[0]));
+	si[0].cb = sizeof(si[0]);
+	ZeroMemory(&pi[0], sizeof(pi[0]));
 
-    if (hCreateNamedPipe == INVALID_HANDLE_VALUE) 
-        cout << "Error when create NamedPipe. Error type: " << GetLastError();
-    
-    bConnectNamedPipe = ConnectNamedPipe(hCreateNamedPipe, NULL);
+	ZeroMemory(&si[1], sizeof(si[1]));
+	si[1].cb = sizeof(si[1]);
+	ZeroMemory(&pi[1], sizeof(pi[1]));
 
-    cout << "test";
-    if(bConnectNamedPipe == FALSE)
-        cout << "Error when create ConectNamedPipe. Error type: " << GetLastError();
+	ZeroMemory(&si[2], sizeof(si[2]));
+	si[2].cb = sizeof(si[2]);
+	ZeroMemory(&pi[2], sizeof(pi[2]));
 
-    /*DisconnectNamedPipe(hCreateNamedPipe);*/
-
-    /*hCreateNamedPipe = CreateFile(
-        L"\\\\.\\pipe\\MemoryList",
-        GENERIC_READ |  
-        GENERIC_WRITE,
-        0,              
-        NULL,           
-        OPEN_EXISTING,   
-        0,         
-        NULL);     */   
-    
-
-    //if (WaitNamedPipe(L"\\\\.\\pipe\\MemoryList", NMPWAIT_USE_DEFAULT_WAIT) == 0)
-    //    printf("\nEsperando por uma instancia do pipe...\n"); // Temporização abortada: o pipe ainda não foi criado
-   
-    
-    hThreads[0] = (HANDLE)
-        _beginthreadex(NULL, 0, &ThreadOptimization, (LPVOID)0, 0, &dwThreadId);
-    
-    if (hThreads[0] == NULL) {
-        cout << "Error when create Thread. Error type: " << GetLastError();
-    }
-
-    hThreads[1] = (HANDLE)
-       _beginthreadex(NULL, 0, ThreadAlarm, (LPVOID)1, 0, &dwThreadId);
-    if (hThreads[1] == NULL) {
-        cout << "Error when create Thread. Error type: " << GetLastError();
-    }
-    
-    hThreads[2] = (HANDLE)
-       _beginthreadex(NULL, 0, ThreadSCADA, (LPVOID)2, 0, &dwThreadId);
-   
-    if (hThreads[2] == NULL) {
-        cout << "Error when create Thread. Error type: " << GetLastError();
-    }
+	ZeroMemory(&si[3], sizeof(si[3]));
+	si[3].cb = sizeof(si[3]);
+	ZeroMemory(&pi[3], sizeof(pi[3]));
 
 
+	bCreateProcess[0] = CreateProcess(
+		L"..\\showDataAlarm\\x64\\Debug\\showDataAlarm.exe",
+		NULL,
+		NULL,
+		NULL,
+		FALSE,
+		CREATE_NEW_CONSOLE,
+		NULL,
+		NULL,
+		&si[0],
+		&pi[0]);
+		
+	if(not bCreateProcess[0])   cout << "Error when create Process Alarm. Error type: " << GetLastError() << endl;
+	else {
+		cout << "Process Alarm ID: " << pi[0].dwProcessId << endl;
+		cout << "Thread ID: " << pi[0].dwThreadId << endl;
+	}
 
-   WaitForSingleObject(hThreads[0], INFINITE);
-   WaitForSingleObject(hThreads[1], INFINITE);
-   WaitForSingleObject(hThreads[2], INFINITE);
+	bCreateProcess[1] = CreateProcess(
+		L"..\\showProcessData\\x64\\Debug\\showProcessData.exe",
+		NULL,
+		NULL,
+		NULL,
+		FALSE,
+		CREATE_NEW_CONSOLE,
+		NULL,
+		NULL,
+		&si[1],
+		&pi[1]);
 
-   return 0;
-}
-unsigned __stdcall  ThreadOptimization(LPVOID index) {
-    dataOptimization data;
-    char test[50] = "teste";
-    while (1) {
-        WaitForSingleObject(Mutex, INFINITE);
-        bWriteFile = WriteFile(hCreateNamedPipe, test, dwszOutputBuffer, &dwNoBytesRead, NULL);
-        cout << "Optimization: " + data.GenerateData() << endl << endl;
+	if (not bCreateProcess[1])   cout << "Error when create Process data exhibition. Error type: " << GetLastError() << endl;
+	else {
+		cout << "Process Data display process ID: " << pi[1].dwProcessId<< endl;
+		cout << "Thread ID: " << pi[1].dwThreadId << endl;
+	}
 
-        ReleaseMutex(Mutex);
-        Sleep(500); 
-    }
-    CloseHandle(index);
-    CloseHandle(Mutex);
-    return 0;
-}
-unsigned __stdcall  ThreadAlarm(LPVOID index) {
-    dataAlarm data;
-    char test[50] = "teste";
-    while (1) {
-        WaitForSingleObject(Mutex, INFINITE);
-        bWriteFile = WriteFile(hCreateNamedPipe, test, dwszOutputBuffer, &dwNoBytesRead, NULL);
-        cout << "Alarme: " + data.GenerateData() << endl << endl;
-        ReleaseMutex(Mutex);
+	bCreateProcess[2] = CreateProcess(
+		L"..\\communicationData\\x64\\Debug\\communicationData.exe",
+		NULL,
+		NULL,
+		NULL,
+		FALSE,
+		0,
+		NULL,
+		NULL,
+		&si[2],
+		&pi[2]);
 
-        Sleep(1000);
-    }
-    CloseHandle(index);
-    return 0;
+	if (not bCreateProcess[2])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
+	else {
+		cout << "Data communication process ID: " << pi[2].dwProcessId << endl;
+		cout << "Thread ID: " << pi[2].dwThreadId << endl;
+	}
 
-}
-unsigned __stdcall  ThreadSCADA(LPVOID index) {
-    dataSCADA data;
-    char test[50] = "teste";
-    while (1) {
-        WaitForSingleObject(Mutex, INFINITE);
-        bWriteFile = WriteFile(hCreateNamedPipe, test, dwszOutputBuffer, &dwNoBytesRead, NULL);
-        cout << "SCADA: " + data.GenerateData() << endl << endl;
-        ReleaseMutex(Mutex);
+	cout << endl;
 
-        Sleep(1000);
-    }
-    CloseHandle(index);
+	WaitForSingleObject(pi[0].hProcess, INFINITE);
+	WaitForSingleObject(pi[1].hProcess, INFINITE);
+	WaitForSingleObject(pi[2].hProcess, INFINITE);
 
-    return 0;
 
+	CloseHandle(pi[0].hThread);
+	CloseHandle(pi[0].hProcess);
+
+	CloseHandle(pi[1].hThread);
+	CloseHandle(pi[1].hProcess);
+
+	CloseHandle(pi[2].hThread);
+	CloseHandle(pi[2].hProcess);
+	
+	return 0;
 }

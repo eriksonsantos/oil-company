@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{b1a7922f-5042-4830-aee2-4468b8d5b96d}</ProjectGuid>
-    <RootNamespace>oilcompany</RootNamespace>
+    <ProjectGuid>{3800d684-9efc-4f7b-bbc7-207f47299916}</ProjectGuid>
+    <RootNamespace>communicationData</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,7 +127,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="oil-company.cpp" />
+    <ClCompile Include="DataAlarm.cpp" />
+    <ClCompile Include="DataOptimization.cpp" />
+    <ClCompile Include="DataProcess.cpp" />
+    <ClCompile Include="GlobalFunctions.cpp" />
+    <ClCompile Include="communicationData.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DataAlarm.h" />
+    <ClInclude Include="DataOptimization.h" />
+    <ClInclude Include="DataProcess.h" />
+    <ClInclude Include="GlobalFunctions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

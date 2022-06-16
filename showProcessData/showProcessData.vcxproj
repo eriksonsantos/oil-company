@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{b1a7922f-5042-4830-aee2-4468b8d5b96d}</ProjectGuid>
-    <RootNamespace>oilcompany</RootNamespace>
+    <ProjectGuid>{dc6d0e7b-1c79-4e5c-838d-dd1cdb4db819}</ProjectGuid>
+    <RootNamespace>showProcessData</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="oil-company.cpp" />
+    <ClCompile Include="showProcessData.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

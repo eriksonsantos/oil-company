@@ -1,5 +1,5 @@
 #include <cstdlib>
-#include "DataSCADA.h"
+#include "DataProcess.h"
 #include <iostream>
 #include <Windows.h>
 
@@ -8,7 +8,7 @@
 using namespace std;
 
 
-dataSCADA::dataSCADA() {
+dataProcess::dataProcess() {
 	this->NSEQ = 0;
 	this->NIVEL = "";
 	this->PRESSAO_G = "";
@@ -17,7 +17,7 @@ dataSCADA::dataSCADA() {
 	this->TEMP = "";
 }
 
-string dataSCADA::GenerateData() {
+string dataProcess::GenerateData() {
 	if (this->NSEQ < maxNseq)
 		this->NSEQ++;
 	else
