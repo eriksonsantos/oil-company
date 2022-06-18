@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Windows.h>
 #include <string>
+#include <process.h>
 
 HANDLE hCreateNamedPipe;
 char message[47];
@@ -11,6 +12,14 @@ DWORD dwszInputBuffer = sizeof(message);
 DWORD dwszOutputBuffer = sizeof(message);
 
 using namespace std;
+
+HANDLE hEventZ,
+hEventL,
+hEventESC,
+hThread[2];
+
+DWORD dwBytesRead = 0,
+dwWaitResultESC;
 
 struct AlarmMessage {
     string  NSEQ,
@@ -59,10 +68,39 @@ string generateShowMessage(string text) {
     return(output);
 }
 
-
+unsigned __stdcall  ThreadClearConsole(LPVOID index);
+unsigned __stdcall  ThreadMain(LPVOID index);
+unsigned dwThreadId;
+bool bReadFile, bConnectNamedPipe;
 int main()
 {
-    bool bReadFile, bConnectNamedPipe;
+    hEventZ = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventZ");
+    if (hEventZ == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hEventL = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventL");
+    if (hEventL == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hEventESC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventESC");
+    if (hEventESC == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hThread[1] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadClearConsole, (LPVOID)1, 0, &dwThreadId);
+
+    if (hThread[1] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+
+    hThread[2] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadMain, (LPVOID)2, 0, &dwThreadId);
+
+    if (hThread[2] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+
+
 
     hCreateNamedPipe = CreateNamedPipe(
         L"\\\\.\\pipe\\Alarm",
@@ -82,11 +120,33 @@ int main()
     if (bConnectNamedPipe == FALSE)
         cout << "Error when create ConectNamedPipe. Error type: " << GetLastError();
 
+    WaitForSingleObject(hThread[1], INFINITE);
+    WaitForSingleObject(hThread[2], INFINITE);
 
-    DWORD dwBytesRead = 0;
+
+
+    DisconnectNamedPipe(hCreateNamedPipe);
+    CloseHandle(hCreateNamedPipe);
+
+    CloseHandle(hThread[1]);
+    CloseHandle(hThread[2]);
+    
+
+
+    return 0;
+}
+
+unsigned __stdcall  ThreadClearConsole(LPVOID index) {
+    while (1) {
+        WaitForSingleObject(hEventZ, INFINITE);
+        system("CLS");
+    }
+}
+
+unsigned __stdcall  ThreadMain(LPVOID index) {
     bReadFile = TRUE;
-
-    while (TRUE) {
+    while (1) {
+        WaitForSingleObject(hEventL, INFINITE);
 
         bReadFile = ReadFile(hCreateNamedPipe, &message, sizeof(message), &dwBytesRead, NULL);
         if (bReadFile == FALSE)
@@ -94,15 +154,10 @@ int main()
         else
             cout << generateShowMessage(message) << endl;
 
+        /* dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
+         if (dwWaitResultESC == WAIT_OBJECT_0) break;*/
+
         Sleep(1000);
-
     }
-
-
-    DisconnectNamedPipe(hCreateNamedPipe);
-    CloseHandle(hCreateNamedPipe);
-
-
-    return 0;
 }
 

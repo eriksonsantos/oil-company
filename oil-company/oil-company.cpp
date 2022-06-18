@@ -1,10 +1,34 @@
 // oil-company.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
+
+/* Esse é o programa principal, na qual criará os outros processos.
+Nesse sentido, antes de rodar esse programa, deverá gerar os executáveis dos outros programas
+escolhendo a opção de 64 Bits (x64) no modo Debug. Com isso feito, o programa será executado 
+normalmente.
+
+*/
+
 #include <iostream>
 #include <Windows.h>
 #include <process.h>
+#include <string>
+
+HANDLE hEventC,
+hEventO,
+hEventP,
+hEventA,
+hEventT,
+hEventR,
+hEventL,
+hEventZ,
+hEventESC;
+
+HANDLE hThread;
+unsigned dwThreadId;
+
+unsigned __stdcall  ThreadkeyboardInput(LPVOID index);
 
 #define ProjetsQTD 6
+#define ESC 0x1B
 
 using namespace std;
 int main()
@@ -13,6 +37,34 @@ int main()
 	STARTUPINFO si[ProjetsQTD];
 	PROCESS_INFORMATION pi[ProjetsQTD];
 	int i;
+
+
+	hEventC = CreateEvent(NULL, TRUE, TRUE, L"EventC");
+	if (hEventC == NULL) cout << "CreateEvent C failed. Error type: " << GetLastError();
+
+	hEventO = CreateEvent(NULL, TRUE, TRUE, L"EventO");
+	if (hEventO == NULL) cout << "CreateEvent O failed. Error type: " << GetLastError();
+
+	hEventP = CreateEvent(NULL, TRUE, TRUE, L"EventP");
+	if (hEventP == NULL) cout << "CreateEvent P failed. Error type: " << GetLastError();
+
+	hEventT = CreateEvent(NULL, TRUE, TRUE, L"EventT");
+	if (hEventT == NULL) cout << "CreateEvent T failed. Error type: " << GetLastError();
+
+	hEventR = CreateEvent(NULL, TRUE, TRUE, L"EventR");
+	if (hEventR == NULL) cout << "CreateEvent R failed. Error type: " << GetLastError();
+
+	hEventL = CreateEvent(NULL, TRUE, TRUE, L"EventL");
+	if (hEventL == NULL) cout << "CreateEvent L failed. Error type: " << GetLastError();
+
+	hEventZ = CreateEvent(NULL, FALSE, FALSE, L"EventZ");
+	if (hEventZ == NULL) cout << "CreateEvent Z failed. Error type: " << GetLastError();
+
+	hEventA = CreateEvent(NULL, TRUE, TRUE, L"EventA");
+	if (hEventA == NULL) cout << "CreateEvent A failed. Error type: " << GetLastError();
+
+	hEventESC = CreateEvent(NULL, TRUE, TRUE, L"EventESC");
+	if (hEventESC == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
 	
 	for (i = 0;i < ProjetsQTD; i++) {
 
@@ -96,6 +148,13 @@ int main()
 
 	cout << endl;
 
+	hThread = (HANDLE)
+		_beginthreadex(NULL, 0, &ThreadkeyboardInput, (LPVOID)0, 0, &dwThreadId);
+
+	if (hThread == NULL)  cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+	
+	WaitForSingleObject(hThread, INFINITE);
+
 	for (i = 0; i < 4; i++) 
 		WaitForSingleObject(pi[i].hProcess, INFINITE);
 
@@ -103,7 +162,155 @@ int main()
 		CloseHandle(pi[i].hThread);
 		CloseHandle(pi[i].hProcess);
 	}
+	CloseHandle(hEventC);
+	CloseHandle(hEventA);
+	CloseHandle(hEventESC);
+	CloseHandle(hEventL);
+	CloseHandle(hEventO);
+	CloseHandle(hEventR);
+	CloseHandle(hEventT);
+	CloseHandle(hEventZ);
 	
-	
+	return 0;
+}
+
+unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
+	char input;
+	int flags[9] = { 0 };
+	bool bResult;
+	while (1) {
+		cin >> input;
+		
+		switch (input) {
+		case 'c':
+			if (flags[0] == 1) {
+				bResult = SetEvent(hEventC);
+				flags[0] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventC);
+				flags[0] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 'o':
+			if (flags[1] == 1) {
+				bResult = SetEvent(hEventO);
+				flags[1] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventO);
+				flags[1] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 'p':
+			if (flags[2] == 1) {
+				bResult = SetEvent(hEventP);
+				flags[2] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventP);
+				flags[2] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 'a':
+			if (flags[3] == 1) {
+				bResult = SetEvent(hEventA);
+				flags[3] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventA);
+				flags[3] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 't':
+			if (flags[4] == 1) {
+				bResult = SetEvent(hEventT);
+				flags[4] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventT);
+				flags[4] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 'r':
+			if (flags[5] == 1) {
+				bResult = SetEvent(hEventR);
+				flags[5] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventR);
+				flags[5] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 'l':
+			if (flags[6] == 1) {
+				bResult = SetEvent(hEventL);
+				flags[6] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventL);
+				flags[6] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case 'z':
+			bResult = SetEvent(hEventZ);
+		
+			if (!bResult) {
+				cout << "ResetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		case ESC:
+			if (flags[8] == 1) {
+				bResult = SetEvent(hEventESC);
+				flags[8] = 0;
+			}
+			else {
+				bResult = ResetEvent(hEventESC);
+				flags[8] = 1;
+			}
+			if (!bResult) {
+				cout << "SetEvent failed. Error type: " << GetLastError();
+			}
+			break;
+
+		default:
+			cout << "Caractere invalido." << endl;
+			break;
+		
+		
+		}
+
+	}
+
+	CloseHandle(index);
 	return 0;
 }

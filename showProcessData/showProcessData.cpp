@@ -10,6 +10,9 @@ DWORD dwszInputBuffer = sizeof(message);
 DWORD dwszOutputBuffer = sizeof(message);
 using namespace std;
 
+HANDLE hEventR,
+hEventESC;
+
 struct ProcessMessage {
     string  NSEQ,
             PRESSAO_G,
@@ -50,6 +53,11 @@ int main()
 {
     bool bReadFile, bConnectNamedPipe;
 
+
+    hEventR = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventR");
+    if (hEventR == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
     hCreateNamedPipe = CreateNamedPipe(
         L"\\\\.\\pipe\\Process",
         PIPE_ACCESS_DUPLEX,
@@ -73,6 +81,7 @@ int main()
     bReadFile = TRUE;
 
     while (TRUE) {
+        WaitForSingleObject(hEventR, INFINITE);
 
         bReadFile = ReadFile(hCreateNamedPipe, &message, sizeof(message), &dwBytesRead, NULL);
         if (bReadFile == FALSE)
