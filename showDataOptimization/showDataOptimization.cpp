@@ -19,6 +19,34 @@ struct DataOptimization {
         INICIO;
 };
 
+string getValue(string value, int posInit, int posEnd) {
+    int i;
+    string output = "";
+    for (i = posInit; i < posEnd; i++) {
+        output = output + value[i];
+    }
+
+    return(output);
+}
+string generateShowMessage(string text) {
+    DataOptimization aux;
+    string output;
+
+    aux.NSEQ = getValue(text, 0, 6);
+    aux.SP_PRESS = getValue(text, 10, 16);
+    aux.SP_TEMP = getValue(text, 18, 24);
+    aux.VOL = getValue(text, 26, 31);
+    aux.INICIO = getValue(text, 32, 40);
+
+    output = "NSEQ: " + aux.NSEQ + " SP (TEMP): " + aux.SP_PRESS + "C SP (PRE): " +
+        aux.SP_TEMP + "psi VOL: " + aux.VOL + "m3 PROD: " + aux.INICIO;
+
+
+
+    return(output);
+}
+
+
 HANDLE hFileMap;
 bool bResult = FALSE;
 linked_list * lpBuffer;

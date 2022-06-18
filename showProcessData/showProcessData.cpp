@@ -12,12 +12,39 @@ using namespace std;
 
 struct ProcessMessage {
     string  NSEQ,
-            NIVEL,
             PRESSAO_G,
             PRESSAO_T,
             timeStamp,
+            NIVEL,
             TEMP;
 };
+string getValue(string value, int posInit, int posEnd) {
+    int i;
+    string output = "";
+    for (i = posInit; i < posEnd; i++) {
+        output = output + value[i];
+    }
+
+    return(output);
+}
+string generateShowMessage(string text) {
+    ProcessMessage aux;
+    string output;
+
+    aux.NSEQ = getValue(text, 0, 6);
+    aux.PRESSAO_G = getValue(text, 24, 30);
+    aux.PRESSAO_T = getValue(text, 10, 16);
+    aux.TEMP = getValue(text, 17, 23);
+    aux.NIVEL = getValue(text, 31, 37);
+    aux.timeStamp = getValue(text, 38, 46);
+
+    output = aux.timeStamp + " NSEQ: " + aux.NSEQ + " PR (T): " + aux.PRESSAO_T + "psi TEMP: " +
+        aux.TEMP + "C PR (G): " + aux.PRESSAO_G + "psi NIVEL: " + aux.NIVEL + "cm";
+        
+
+
+    return(output);
+}
 
 int main()
 {
@@ -51,10 +78,9 @@ int main()
         if (bReadFile == FALSE)
             cout << "ReadFile failed. Error type: " << GetLastError() << endl;
         else
-            cout << message << endl;
+            cout << generateShowMessage(message) << endl;
 
         Sleep(1000);
-
     }
 
 

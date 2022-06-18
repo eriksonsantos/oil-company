@@ -165,7 +165,6 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
-            cout << type << endl;
             if (type == 11) {
                 aux = message;
                 gLinked_list.PosRemove(i+1);
@@ -173,9 +172,6 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
             }
 
         }
-         
-        gLinked_list.showData();
-        cout << endl;
         ReleaseMutex(Mutex);
     }
     CloseHandle(index);
