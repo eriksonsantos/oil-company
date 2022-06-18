@@ -22,16 +22,16 @@ struct AlarmMessage {
 };
 
 string getMessageAlarm(int ID) {
-    if (ID < 1000) return "Message 1";
-    if (ID >= 1000 and ID < 2000) return "Message 2";
-    if (ID >= 2000 and ID < 3000) return "Message 3";
-    if (ID >= 3000 and ID < 4000) return "Message 4";
-    if (ID >= 4000 and ID < 5000) return "Message 5";
-    if (ID >= 5000 and ID < 6000) return "Message 6";
-    if (ID >= 6000 and ID < 7000) return "Message 7";
-    if (ID >= 7000 and ID < 8000) return "Message 8";
-    if (ID >= 8000 and ID < 9000) return "Message 9";
-    if (ID >= 9000 and ID < 10000) return "Message 10";
+    if (ID < 1000) return "Alta pressao no poco##########";
+    if (ID >= 1000 and ID < 2000) return "Alta temperatura no poco######";
+    if (ID >= 2000 and ID < 3000) return "Alto volume no poco##########";
+    if (ID >= 3000 and ID < 4000) return "Alta pressao no tubo##########";
+    if (ID >= 4000 and ID < 5000) return "Alta temperatura no tubo######";
+    if (ID >= 5000 and ID < 6000) return "Baixa efic de bombeamento#####";
+    if (ID >= 6000 and ID < 7000) return "Temp alta no tanque de armaz##";
+    if (ID >= 7000 and ID < 8000) return "Press alta no tanque de armaz#";
+    if (ID >= 8000 and ID < 9000) return "Stress alto nas hastes########";
+    if (ID >= 9000 and ID < 10000) return "Falha de comunicacao##########";
 }
 
 string getValue(string value, int posInit, int posEnd) {

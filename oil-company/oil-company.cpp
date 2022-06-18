@@ -13,7 +13,7 @@ int main()
 	STARTUPINFO si[ProjetsQTD];
 	PROCESS_INFORMATION pi[ProjetsQTD];
 	int i;
-
+	
 	for (i = 0;i < ProjetsQTD; i++) {
 
 		ZeroMemory(&si[i], sizeof(si[i]));
@@ -59,6 +59,24 @@ int main()
 	}
 
 	bCreateProcess[2] = CreateProcess(
+		L"..\\showDataOptimization\\x64\\Debug\\showDataOptimization.exe",
+		NULL,
+		NULL,
+		NULL,
+		FALSE,
+		CREATE_NEW_CONSOLE,
+		NULL,
+		NULL,
+		&si[2],
+		&pi[2]);
+
+	if (not bCreateProcess[2])   cout << "Error when create Process data exhibition. Error type: " << GetLastError() << endl;
+	else {
+		cout << "Process Data display process ID: " << pi[2].dwProcessId << endl;
+		cout << "Thread ID: " << pi[2].dwThreadId << endl;
+	}
+
+	bCreateProcess[3] = CreateProcess(
 		L"..\\communicationData\\x64\\Debug\\communicationData.exe",
 		NULL,
 		NULL,
@@ -67,25 +85,24 @@ int main()
 		0,
 		NULL,
 		NULL,
-		&si[2],
-		&pi[2]);
+		&si[3],
+		&pi[3]);
 
-	if (not bCreateProcess[2])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
+	if (not bCreateProcess[3])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
 	else {
-		cout << "Data communication process ID: " << pi[2].dwProcessId << endl;
-		cout << "Thread ID: " << pi[2].dwThreadId << endl;
+		cout << "Data communication process ID: " << pi[3].dwProcessId << endl;
+		cout << "Thread ID: " << pi[3].dwThreadId << endl;
 	}
 
 	cout << endl;
 
-	for (i = 0; i < 3; i++) 
+	for (i = 0; i < 4; i++) 
 		WaitForSingleObject(pi[i].hProcess, INFINITE);
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < 4; i++) {
 		CloseHandle(pi[i].hThread);
 		CloseHandle(pi[i].hProcess);
 	}
-	
 	
 	
 	return 0;

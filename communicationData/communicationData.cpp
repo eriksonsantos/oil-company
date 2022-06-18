@@ -6,10 +6,15 @@
 #include "DataProcess.h"
 #include "DataAlarm.h"
 #include <process.h>
+#include "LinkedList.h"
 
 unsigned __stdcall  ThreadProcess(LPVOID index);
 unsigned __stdcall  ThreadAlarm(LPVOID index);
 unsigned __stdcall ThreadOptimization(LPVOID index);
+
+unsigned __stdcall ThreadRemoveDataProcess(LPVOID index);
+unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index);
+unsigned __stdcall ThreadRemoveDataOptimization(LPVOID index);
 
 HANDLE Mutex;
 HANDLE hNamedPipeProcess;
@@ -21,11 +26,13 @@ bool bWriteFile;
 DWORD dwszOutputBufferProcess;
 DWORD dwszOutputBufferAlarm;
 DWORD dwNoBytesRead;
+
+linked_list gLinked_list;
 int main()
 {
     srand((unsigned)time(0));
 
-    HANDLE hThreads[3];
+    HANDLE hThreads[6];
     unsigned dwThreadId;
 
     Mutex = CreateMutex(NULL, FALSE, NULL);
@@ -52,10 +59,35 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
+   /* hThreads[3] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadRemoveDataProcess, (LPVOID)2, 0, &dwThreadId);
+
+    if (hThreads[3] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }*/
+
+    /*hThreads[4] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadRemoveDataAlarm, (LPVOID)2, 0, &dwThreadId);
+
+    if (hThreads[4] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }*/
+
+    hThreads[5] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadRemoveDataOptimization, (LPVOID)2, 0, &dwThreadId);
+
+    if (hThreads[5] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+
 
     WaitForSingleObject(hThreads[0], INFINITE);
     WaitForSingleObject(hThreads[1], INFINITE);
     WaitForSingleObject(hThreads[2], INFINITE);
+    /*WaitForSingleObject(hThreads[3], INFINITE);
+    WaitForSingleObject(hThreads[4], INFINITE);*/
+    WaitForSingleObject(hThreads[5], INFINITE);
+
 
     return 0;
 }
@@ -65,7 +97,10 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     while (1) {
         aux = data.GenerateData();
 
-        //bWriteFile = WriteFile(hCreateNamedPipe, aux.c_str(), dwszOutputBuffer, &dwNoBytesRead, NULL);
+        WaitForSingleObject(Mutex, INFINITE);
+        gLinked_list.PosInsert(aux, 1);
+        
+        ReleaseMutex(Mutex);
 
         Sleep(500);
     }
@@ -73,6 +108,64 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     return 0;
 }
 unsigned __stdcall  ThreadAlarm(LPVOID index) {
+    dataAlarm data;
+    string aux;
+
+    while (1) {
+        aux = data.GenerateData();
+
+        WaitForSingleObject(Mutex, INFINITE);
+        gLinked_list.PosInsert(aux, 1);
+
+        ReleaseMutex(Mutex);
+
+        Sleep(1000);
+    }
+
+    CloseHandle(index);
+
+    return 0;
+
+}
+unsigned __stdcall  ThreadProcess(LPVOID index) {
+    dataProcess data;
+    string aux;
+
+    while (1) {
+        aux = data.GenerateData();
+
+        WaitForSingleObject(Mutex, INFINITE);
+        gLinked_list.PosInsert(aux, 1);
+
+        ReleaseMutex(Mutex);
+
+        Sleep(1000);
+    }
+
+    CloseHandle(index);
+
+    return 0;
+
+}
+
+
+
+
+unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
+   
+    while (1) {
+    
+        WaitForSingleObject(Mutex, INFINITE);
+        gLinked_list.showData();
+        cout << endl;
+
+        ReleaseMutex(Mutex);
+        Sleep(500);
+    }
+    CloseHandle(index);
+    return 0;
+}
+unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
     dataAlarm data;
     string aux;
 
@@ -106,7 +199,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     return 0;
 
 }
-unsigned __stdcall  ThreadProcess(LPVOID index) {
+unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
     dataProcess data;
     string aux;
 
