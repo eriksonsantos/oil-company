@@ -14,3 +14,5 @@ string formatIntValue(int value, int tam);
 float randomFloatValue(int floatMin, int floatMax);
 
 int randomIntValue(int IntMin, int IntMax);
+
+int getValue(string message, int posInit, int posEnd);

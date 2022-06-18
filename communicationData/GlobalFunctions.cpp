@@ -36,3 +36,13 @@ int randomIntValue(int IntMin, int IntMax) {
 
 	return random;
 }
+
+int getValue(string message, int posInit, int posEnd) {
+	int i;
+	string output = "";
+	for (i = posInit; i < posEnd; i++) {
+		output = output + message[i];
+	}
+
+	return(stoi(output));
+}

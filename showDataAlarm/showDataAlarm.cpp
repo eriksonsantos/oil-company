@@ -24,7 +24,7 @@ struct AlarmMessage {
 string getMessageAlarm(int ID) {
     if (ID < 1000) return "Alta pressao no poco##########";
     if (ID >= 1000 and ID < 2000) return "Alta temperatura no poco######";
-    if (ID >= 2000 and ID < 3000) return "Alto volume no poco##########";
+    if (ID >= 2000 and ID < 3000) return "Alto volume no poco###########";
     if (ID >= 3000 and ID < 4000) return "Alta pressao no tubo##########";
     if (ID >= 4000 and ID < 5000) return "Alta temperatura no tubo######";
     if (ID >= 5000 and ID < 6000) return "Baixa efic de bombeamento#####";

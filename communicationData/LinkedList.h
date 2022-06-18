@@ -17,6 +17,7 @@ struct linked_list
     bool    BeginRemove();
     bool    PosRemove(int pos);
     int     getSize();
+    string  getValue(int pos);
 
     linked_list();
     ~linked_list();

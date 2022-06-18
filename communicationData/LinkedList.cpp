@@ -23,10 +23,17 @@ void linked_list::showData()
     Node* p = begin;
     for (int i = 0; i < size; i += 1, p = p->prox)
     {
-        cout << setw(4) << p->data << " ";
-        if (++nc % 10 == 0) cout << "\n";  // 10 por linha
+        cout << "i =" << i << " " << setw(4) << p->data << " " << endl;
     }
     cout << "\n";
+}
+
+string linked_list::getValue(int pos) {
+    Node* p = begin;
+    for (int i = 0; i < pos; i += 1, p = p->prox);
+
+    return(p->data);
+    
 }
 
 bool linked_list::BeginInsert(string data)

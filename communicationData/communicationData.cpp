@@ -59,19 +59,19 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
-   /* hThreads[3] = (HANDLE)
+    hThreads[3] = (HANDLE)
         _beginthreadex(NULL, 0, ThreadRemoveDataProcess, (LPVOID)2, 0, &dwThreadId);
 
     if (hThreads[3] == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
-    }*/
+    }
 
-    /*hThreads[4] = (HANDLE)
+    hThreads[4] = (HANDLE)
         _beginthreadex(NULL, 0, ThreadRemoveDataAlarm, (LPVOID)2, 0, &dwThreadId);
 
     if (hThreads[4] == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
-    }*/
+    }
 
     hThreads[5] = (HANDLE)
         _beginthreadex(NULL, 0, ThreadRemoveDataOptimization, (LPVOID)2, 0, &dwThreadId);
@@ -84,8 +84,8 @@ int main()
     WaitForSingleObject(hThreads[0], INFINITE);
     WaitForSingleObject(hThreads[1], INFINITE);
     WaitForSingleObject(hThreads[2], INFINITE);
-    /*WaitForSingleObject(hThreads[3], INFINITE);
-    WaitForSingleObject(hThreads[4], INFINITE);*/
+    WaitForSingleObject(hThreads[3], INFINITE);
+    WaitForSingleObject(hThreads[4], INFINITE);
     WaitForSingleObject(hThreads[5], INFINITE);
 
 
@@ -102,7 +102,7 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         
         ReleaseMutex(Mutex);
 
-        Sleep(500);
+        Sleep(1000);
     }
     CloseHandle(index);
     return 0;
@@ -152,25 +152,44 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 
 
 unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
-   
+    int tam, type;
+    string message, aux;
+
     while (1) {
-    
+        aux = "";
         WaitForSingleObject(Mutex, INFINITE);
+
+        tam = gLinked_list.getSize();
+
+        for (int i = 0; i < tam; i++) {
+            message = gLinked_list.getValue(i);
+            type = getValue(message, 7, 9);
+
+            cout << type << endl;
+            if (type == 11) {
+                aux = message;
+                gLinked_list.PosRemove(i+1);
+                break;
+            }
+
+        }
+         
         gLinked_list.showData();
         cout << endl;
-
         ReleaseMutex(Mutex);
-        Sleep(500);
     }
     CloseHandle(index);
     return 0;
 }
 unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
     dataAlarm data;
-    string aux;
+    int tam,type;
+    string message, aux;
 
-    while (WaitNamedPipe(L"\\\\.\\pipe\\Alarm", NMPWAIT_USE_DEFAULT_WAIT) == 0)
+    while (WaitNamedPipe(L"\\\\.\\pipe\\Alarm", NMPWAIT_USE_DEFAULT_WAIT) == 0) {
         cout << "\nEsperando por uma instancia do pipe Alarm...\n" << endl;
+        Sleep(100);
+    }
 
     hNamedPipeAlarm = CreateFile(
         L"\\\\.\\pipe\\Alarm",
@@ -183,28 +202,49 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
         NULL);
 
     while (1) {
-        aux = data.GenerateData();
-        dwszOutputBufferAlarm = aux.length() + 1;
+        aux = "";
+        WaitForSingleObject(Mutex, INFINITE);
+        tam = gLinked_list.getSize();
 
-        bWriteFile = WriteFile(hNamedPipeAlarm, aux.c_str(), dwszOutputBufferAlarm, &dwNoBytesRead, NULL);
+        for (int i = 0; i < tam; i++) {
+            message = gLinked_list.getValue(i);
+            type = getValue(message, 7, 9);
 
-        if (!bWriteFile)  cout << "Error when Write PipeAlarm. Error type: " << GetLastError() << endl;
+            if (type == 55) {
+                aux = message;
+                gLinked_list.PosRemove(i +1);
+                break;
+            }
 
-        Sleep(1000);
+        }
+       ReleaseMutex(Mutex);
+
+       if (aux.length() != 0) {
+           dwszOutputBufferAlarm = aux.length() + 1;
+
+           bWriteFile = WriteFile(hNamedPipeAlarm, aux.c_str(), dwszOutputBufferAlarm, &dwNoBytesRead, NULL);
+
+           if (!bWriteFile)  cout << "Error when Write PipeAlarm. Error type: " << GetLastError() << endl;
+       }
+
+
     }
-
-    CloseHandle(index);
     CloseHandle(hNamedPipeAlarm);
+    CloseHandle(index);
+
 
     return 0;
 
 }
 unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
     dataProcess data;
-    string aux;
+    string aux, message;
+    int tam, type;
 
-    while (WaitNamedPipe(L"\\\\.\\pipe\\Process", NMPWAIT_USE_DEFAULT_WAIT) == 0)
+    while (WaitNamedPipe(L"\\\\.\\pipe\\Process", NMPWAIT_USE_DEFAULT_WAIT) == 0) {
         cout << "\nEsperando por uma instancia do pipe Process...\n" << endl;
+        Sleep(100);
+    }
 
     hNamedPipeProcess = CreateFile(
         L"\\\\.\\pipe\\Process",
@@ -217,14 +257,31 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
         NULL);
 
     while (1) {
-        aux = data.GenerateData();
-        dwszOutputBufferProcess = aux.length() + 1;
+        aux = "";
+        WaitForSingleObject(Mutex, INFINITE);
 
-        bWriteFile = WriteFile(hNamedPipeProcess, aux.c_str(), dwszOutputBufferProcess, &dwNoBytesRead, NULL);
+        tam = gLinked_list.getSize();
 
-        if (!bWriteFile)  cout << "Error when Write PipeProcess. Error type: " << GetLastError() << endl;
+        for (int i = 0; i < tam; i++) {
+            message = gLinked_list.getValue(i);
+            type = getValue(message, 7, 9);
 
-        Sleep(1000);
+            if (type == 22) {
+                aux = message;
+                gLinked_list.PosRemove(i + 1);
+                break;
+            }
+
+        }
+        ReleaseMutex(Mutex);
+        
+        if (aux.length() != 0) {
+            dwszOutputBufferProcess = aux.length() + 1;
+
+            bWriteFile = WriteFile(hNamedPipeProcess, aux.c_str(), dwszOutputBufferProcess, &dwNoBytesRead, NULL);
+
+            if (!bWriteFile)  cout << "Error when Write PipeProcess. Error type: " << GetLastError() << endl;
+        }
     }
 
     CloseHandle(index);
