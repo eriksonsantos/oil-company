@@ -23,10 +23,13 @@ hEventL,
 hEventZ,
 hEventESC;
 
-HANDLE hThread;
+HANDLE hThread[2];
 unsigned dwThreadId;
 
 unsigned __stdcall  ThreadkeyboardInput(LPVOID index);
+unsigned __stdcall  ThreadCloseProgram(LPVOID index);
+
+bool EXECUTE = TRUE;
 
 #define ProjetsQTD 6
 #define ESC 27
@@ -149,12 +152,19 @@ int main()
 
 	cout << endl;
 
-	hThread = (HANDLE)
+	hThread[0] = (HANDLE)
 		_beginthreadex(NULL, 0, &ThreadkeyboardInput, (LPVOID)0, 0, &dwThreadId);
 
 	if (hThread == NULL)  cout << "Error when create Thread. Error type: " << GetLastError() << endl;
 	
-	WaitForSingleObject(hThread, INFINITE);
+	hThread[1] = (HANDLE)
+		_beginthreadex(NULL, 0, &ThreadCloseProgram, (LPVOID)1, 0, &dwThreadId);
+
+	if (hThread == NULL)  cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+
+
+	WaitForSingleObject(hThread[0], INFINITE);
+	WaitForSingleObject(hThread[1], INFINITE);
 
 	for (i = 0; i < 4; i++) 
 		WaitForSingleObject(pi[i].hProcess, INFINITE);
@@ -171,6 +181,9 @@ int main()
 	CloseHandle(hEventR);
 	CloseHandle(hEventT);
 	CloseHandle(hEventZ);
+
+	CloseHandle(hThread[0]);
+	CloseHandle(hThread[1]);
 	
 	return 0;
 }
@@ -179,7 +192,7 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 	char input;
 	int flags[9] = { 0 };
 	bool bResult;
-	while (1) {
+	while (EXECUTE) {
 		input = _getch();
 		
 		switch (input) {
@@ -308,6 +321,27 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 
 	}
 
-	CloseHandle(index);
+	//CloseHandle(index);
 	return 0;
 }
+
+unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
+	DWORD dwExitCode;
+	bool InterEnd = TRUE;
+	while (InterEnd) {
+		WaitForSingleObject(hEventESC, INFINITE);
+		EXECUTE = FALSE;
+
+		WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
+
+		for (int i = 0; i < 2; i++) {
+			GetExitCodeThread(hThread[i], &dwExitCode);
+		}
+
+		exit;
+		InterEnd = FALSE;
+	}
+	//CloseHandle(index);
+	return 0;
+}
+

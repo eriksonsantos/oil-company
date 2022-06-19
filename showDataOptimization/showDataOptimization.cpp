@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Windows.h>
 #include "LinkedList.h"
+#include <process.h>
 
 #define Size_Message 47
 char message[Size_Message];
@@ -45,17 +46,52 @@ string generateShowMessage(string text) {
 
     return(output);
 }
-
+unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 
 HANDLE hFileMap;
 bool bResult = FALSE;
 linked_list * lpBuffer;
 string *lpBufferAux;
+HANDLE hThread, hEventESC;
+unsigned dwThreadId;
 
 int main()
 {
-    cout << "Aqui deverá ser implementado o recebimento dos dados via arquivo em disco" << endl;
-    while (1);
+    hEventESC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventESC");
+    if (hEventESC == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    cout << "Os dados serão mostrados na segunda etapa." << endl;
+    hThread = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)0, 0, &dwThreadId);
+
+    if (hThread == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+    
+    WaitForSingleObject(hThread, INFINITE);
+   
+    return 0;
+}
+
+unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
+    DWORD dwExitCode;
+    bool InterEnd = TRUE;
+
+    while (InterEnd) {
+        WaitForSingleObject(hEventESC, INFINITE);
+        //EXECUTE = FALSE;
+
+        /*WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
+
+        for (int i = 0; i < 2; i++) {
+            GetExitCodeThread(hThread[i], &dwExitCode);
+        }*/
+
+        exit;
+        InterEnd = FALSE;
+    }
+    //CloseHandle(index);
     return 0;
 }
 

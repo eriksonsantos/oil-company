@@ -33,14 +33,17 @@ hEventP,
 hEventA,
 hEventESC;
 
+HANDLE hThreads[6],
+hThreadsCloseProg;
+bool EXECUTE = TRUE;
+
 DWORD dwWaitResult;
+unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 
 linked_list gLinked_list;
 int main()
 {
     srand((unsigned)time(0));
-
-    HANDLE hThreads[6];
     unsigned dwThreadId;
 
     hEventC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventC");
@@ -93,23 +96,30 @@ int main()
     }
 
     hThreads[3] = (HANDLE)
-        _beginthreadex(NULL, 0, ThreadRemoveDataProcess, (LPVOID)2, 0, &dwThreadId);
+        _beginthreadex(NULL, 0, ThreadRemoveDataProcess, (LPVOID)3, 0, &dwThreadId);
 
     if (hThreads[3] == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
     hThreads[4] = (HANDLE)
-        _beginthreadex(NULL, 0, ThreadRemoveDataAlarm, (LPVOID)2, 0, &dwThreadId);
+        _beginthreadex(NULL, 0, ThreadRemoveDataAlarm, (LPVOID)4, 0, &dwThreadId);
 
     if (hThreads[4] == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
     hThreads[5] = (HANDLE)
-        _beginthreadex(NULL, 0, ThreadRemoveDataOptimization, (LPVOID)2, 0, &dwThreadId);
+        _beginthreadex(NULL, 0, ThreadRemoveDataOptimization, (LPVOID)5, 0, &dwThreadId);
 
     if (hThreads[5] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+
+    hThreadsCloseProg = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)6, 0, &dwThreadId);
+
+    if (hThreadsCloseProg == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
@@ -122,6 +132,8 @@ int main()
     WaitForSingleObject(hThreads[4], INFINITE);
     WaitForSingleObject(hThreads[5], INFINITE);
 
+    WaitForSingleObject(ThreadCloseProgram, INFINITE);
+
 
     for(int i=0; i< 6;i++)
         CloseHandle(hThreads[i]);
@@ -132,6 +144,8 @@ int main()
     CloseHandle(hEventA);
     CloseHandle(hEventESC);
 
+    CloseHandle(hThreadsCloseProg);
+
 
     return 0;
 }
@@ -140,7 +154,7 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     string aux;
     DWORD dwWaitResultESC;
 
-    while (1) {
+    while (EXECUTE) {
         
         WaitForSingleObject(hEventC, INFINITE);
         
@@ -151,12 +165,9 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         
         ReleaseMutex(Mutex);
 
-        /*dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-        if (dwWaitResultESC == WAIT_OBJECT_0) exit;*/
-
         Sleep(1000);
     }
-    CloseHandle(index);
+    //CloseHandle(index);
     return 0;
 }
 unsigned __stdcall  ThreadAlarm(LPVOID index) {
@@ -164,7 +175,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     string aux;
     DWORD dwWaitResultESC;
 
-    while (1) {
+    while (EXECUTE) {
         WaitForSingleObject(hEventC, INFINITE);
         aux = data.GenerateData();
 
@@ -173,13 +184,10 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
 
         ReleaseMutex(Mutex);
 
-       /* dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-        if (dwWaitResultESC == WAIT_OBJECT_0) exit;*/
-
         Sleep(1000);
     }
 
-    CloseHandle(index);
+    //CloseHandle(index);
 
     return 0;
 
@@ -189,7 +197,7 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
     string aux;
     DWORD dwWaitResultESC;
 
-    while (1) {
+    while (EXECUTE) {
         WaitForSingleObject(hEventC, INFINITE);
         aux = data.GenerateData();
 
@@ -198,13 +206,10 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 
         ReleaseMutex(Mutex);
 
-        dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-        if (dwWaitResultESC != WAIT_OBJECT_0) cout << "test";
-
         Sleep(1000);
     }
 
-    CloseHandle(index);
+    //CloseHandle(index);
 
     return 0;
 
@@ -218,7 +223,7 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
     string message, aux;
     DWORD dwWaitResultESC;
 
-    while (1) {
+    while (EXECUTE) {
         WaitForSingleObject(hEventO, INFINITE);
         aux = "";
         WaitForSingleObject(Mutex, INFINITE);
@@ -237,9 +242,6 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
 
         }
         ReleaseMutex(Mutex);
-
-        /*dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-        if (dwWaitResultESC == WAIT_OBJECT_0) exit;*/
     }
     CloseHandle(index);
     return 0;
@@ -250,10 +252,7 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
     string message, aux;
     DWORD dwWaitResultESC;
 
-    while (WaitNamedPipe(L"\\\\.\\pipe\\Alarm", NMPWAIT_USE_DEFAULT_WAIT) == 0) {
-        cout << "\nEsperando por uma instancia do pipe Alarm...\n" << endl;
-        Sleep(100);
-    }
+    while (WaitNamedPipe(L"\\\\.\\pipe\\Alarm", NMPWAIT_USE_DEFAULT_WAIT) == 0);
 
     hNamedPipeAlarm = CreateFile(
         L"\\\\.\\pipe\\Alarm",
@@ -265,7 +264,7 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
         0,
         NULL);
 
-    while (1) {
+    while (EXECUTE) {
         WaitForSingleObject(hEventA, INFINITE);
         aux = "";
         WaitForSingleObject(Mutex, INFINITE);
@@ -291,9 +290,6 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
 
            if (!bWriteFile)  cout << "Error when Write PipeAlarm. Error type: " << GetLastError() << endl;
        }
-
-      /* dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-       if (dwWaitResultESC == WAIT_OBJECT_0) exit;*/
     }
     CloseHandle(hNamedPipeAlarm);
     CloseHandle(index);
@@ -308,10 +304,7 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
     int tam, type;
     DWORD dwWaitResultESC;
 
-    while (WaitNamedPipe(L"\\\\.\\pipe\\Process", NMPWAIT_USE_DEFAULT_WAIT) == 0) {
-        cout << "\nEsperando por uma instancia do pipe Process...\n" << endl;
-        Sleep(100);
-    }
+    while (WaitNamedPipe(L"\\\\.\\pipe\\Process", NMPWAIT_USE_DEFAULT_WAIT) == 0);
 
     hNamedPipeProcess = CreateFile(
         L"\\\\.\\pipe\\Process",
@@ -350,9 +343,6 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
 
             if (!bWriteFile)  cout << "Error when Write PipeProcess. Error type: " << GetLastError() << endl;
         }
-
-        /*dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-        if (dwWaitResultESC == WAIT_OBJECT_0) exit;*/
     }
 
     CloseHandle(index);
@@ -360,4 +350,24 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
 
     return 0;
 
+}
+
+unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
+    DWORD dwExitCode;
+    bool InterEnd = TRUE;
+    while (InterEnd) {
+        WaitForSingleObject(hEventESC, INFINITE);
+        EXECUTE = FALSE;
+
+        WaitForMultipleObjects(5, hThreads, TRUE, INFINITE);
+
+        for (int i = 0; i < 5; i++) {
+            GetExitCodeThread(hThreads[i], &dwExitCode);
+        }
+
+        exit;
+        InterEnd = FALSE;
+    }
+    //CloseHandle(index);
+    return 0;
 }
