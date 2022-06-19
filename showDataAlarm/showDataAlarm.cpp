@@ -30,6 +30,8 @@ struct AlarmMessage {
         ;
 };
 
+bool EXECUTE = TRUE;
+
 string getMessageAlarm(int ID) {
     if (ID < 1000) return "Alta pressao no poco##########";
     if (ID >= 1000 and ID < 2000) return "Alta temperatura no poco######";
@@ -70,6 +72,8 @@ string generateShowMessage(string text) {
 
 unsigned __stdcall  ThreadClearConsole(LPVOID index);
 unsigned __stdcall  ThreadMain(LPVOID index);
+unsigned __stdcall  ThreadCloseProgram(LPVOID index);
+
 unsigned dwThreadId;
 bool bReadFile, bConnectNamedPipe;
 int main()
@@ -100,6 +104,12 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
+    hThread[3] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)3, 0, &dwThreadId);
+
+    if (hThread[3] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
 
 
     hCreateNamedPipe = CreateNamedPipe(
@@ -122,30 +132,34 @@ int main()
 
     WaitForSingleObject(hThread[1], INFINITE);
     WaitForSingleObject(hThread[2], INFINITE);
-
-
+    WaitForSingleObject(hThread[3], INFINITE);
 
     DisconnectNamedPipe(hCreateNamedPipe);
     CloseHandle(hCreateNamedPipe);
 
     CloseHandle(hThread[1]);
     CloseHandle(hThread[2]);
-    
+    CloseHandle(hThread[3]);
 
 
     return 0;
 }
 
 unsigned __stdcall  ThreadClearConsole(LPVOID index) {
-    while (1) {
-        WaitForSingleObject(hEventZ, INFINITE);
-        system("CLS");
+    DWORD dwWaitResult;
+    while (EXECUTE) {
+        dwWaitResult = WaitForSingleObject(hEventZ, 500);
+        if (dwWaitResult == WAIT_OBJECT_0)
+            system("CLS");
     }
+    
+    //CloseHandle(index);
+    return 0;
 }
 
 unsigned __stdcall  ThreadMain(LPVOID index) {
     bReadFile = TRUE;
-    while (1) {
+    while (EXECUTE) {
         WaitForSingleObject(hEventL, INFINITE);
 
         bReadFile = ReadFile(hCreateNamedPipe, &message, sizeof(message), &dwBytesRead, NULL);
@@ -154,10 +168,30 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
         else
             cout << generateShowMessage(message) << endl;
 
-        /* dwWaitResultESC = WaitForSingleObject(hEventESC, INFINITE);
-         if (dwWaitResultESC == WAIT_OBJECT_0) break;*/
-
         Sleep(1000);
     }
+    //CloseHandle(index);
+    return 0;
+}
+
+unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
+    DWORD dwExitCode;
+    bool InterEnd = TRUE;
+    bReadFile = TRUE;
+    while (InterEnd) {
+        WaitForSingleObject(hEventESC, INFINITE);
+        EXECUTE = FALSE;
+
+        WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
+
+        for (int i = 0; i < 2; i++) {
+            GetExitCodeThread(hThread[i], &dwExitCode);
+        }
+
+        exit;
+        InterEnd = FALSE;
+    }
+    //CloseHandle(index);
+    return 0;
 }
 

@@ -11,6 +11,7 @@ normalmente.
 #include <Windows.h>
 #include <process.h>
 #include <string>
+#include <conio.h>
 
 HANDLE hEventC,
 hEventO,
@@ -28,7 +29,7 @@ unsigned dwThreadId;
 unsigned __stdcall  ThreadkeyboardInput(LPVOID index);
 
 #define ProjetsQTD 6
-#define ESC 0x1B
+#define ESC 27
 
 using namespace std;
 int main()
@@ -63,7 +64,7 @@ int main()
 	hEventA = CreateEvent(NULL, TRUE, TRUE, L"EventA");
 	if (hEventA == NULL) cout << "CreateEvent A failed. Error type: " << GetLastError();
 
-	hEventESC = CreateEvent(NULL, TRUE, TRUE, L"EventESC");
+	hEventESC = CreateEvent(NULL, TRUE, FALSE, L"EventESC");
 	if (hEventESC == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
 	
 	for (i = 0;i < ProjetsQTD; i++) {
@@ -179,7 +180,7 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 	int flags[9] = { 0 };
 	bool bResult;
 	while (1) {
-		cin >> input;
+		input = _getch();
 		
 		switch (input) {
 		case 'c':
@@ -289,17 +290,13 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			break;
 
 		case ESC:
-			if (flags[8] == 1) {
-				bResult = SetEvent(hEventESC);
-				flags[8] = 0;
-			}
-			else {
-				bResult = ResetEvent(hEventESC);
-				flags[8] = 1;
-			}
+			
+			bResult = SetEvent(hEventESC);
+			
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
 			}
+			
 			break;
 
 		default:
