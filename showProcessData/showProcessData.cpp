@@ -124,7 +124,6 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
     while (InterEnd) {
         WaitForSingleObject(hEventESC, INFINITE);
         EXECUTE = FALSE;
-        cout << "test";
 
         WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
 
@@ -151,7 +150,6 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
         else
             cout << generateShowMessage(message) << endl;
 
-        Sleep(1000);
     }
     //CloseHandle(index);
     return 0;

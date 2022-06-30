@@ -168,7 +168,6 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
         else
             cout << generateShowMessage(message) << endl;
 
-        Sleep(1000);
     }
     //CloseHandle(index);
     return 0;

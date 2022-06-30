@@ -36,6 +36,15 @@ string linked_list::getValue(int pos) {
     
 }
 
+string linked_list::getLastValue() {
+    Node* p = begin;
+
+    for (int i = 0; i < size; i += 1, p = p->prox);
+
+    return(p->data);
+
+}
+
 bool linked_list::BeginInsert(string data)
 {
     Node* newData = new Node;

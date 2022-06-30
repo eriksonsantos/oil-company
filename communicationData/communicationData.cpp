@@ -216,10 +216,8 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 }
 
 
-
-
 unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
-    int tam, type;
+    int tam, type, i;
     string message, aux;
     DWORD dwWaitResultESC;
 
@@ -229,17 +227,19 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
         WaitForSingleObject(Mutex, INFINITE);
 
         tam = gLinked_list.getSize();
+        i = 0;
 
-        for (int i = 0; i < tam; i++) {
+        while(tam > 0 and i < tam){
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
             if (type == 11) {
                 aux = message;
-                gLinked_list.PosRemove(i+1);
-                break;
+                gLinked_list.PosRemove(i + 1);
+                tam--;
+                i--;
             }
-
+            i++;
         }
         ReleaseMutex(Mutex);
     }
@@ -248,7 +248,7 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
 }
 unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
     dataAlarm data;
-    int tam,type;
+    int tam,type,i;
     string message, aux;
     DWORD dwWaitResultESC;
 
@@ -269,27 +269,32 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
         aux = "";
         WaitForSingleObject(Mutex, INFINITE);
         tam = gLinked_list.getSize();
-
-        for (int i = 0; i < tam; i++) {
+        i = 0;
+        while(tam >0 and i< tam){
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
             if (type == 55) {
                 aux = message;
-                gLinked_list.PosRemove(i +1);
-                break;
+                gLinked_list.PosRemove(i + 1);
+                tam--;
+                i--;
+
+                if (aux.length() != 0) {
+                    dwszOutputBufferAlarm = aux.length() + 1;
+
+                    bWriteFile = WriteFile(hNamedPipeAlarm, aux.c_str(), dwszOutputBufferAlarm, &dwNoBytesRead, NULL);
+
+                    if (!bWriteFile)  cout << "Error when Write PipeAlarm. Error type: " << GetLastError() << endl;
+                    
+                    aux = "";
+                }
             }
+            i++;
 
         }
        ReleaseMutex(Mutex);
 
-       if (aux.length() != 0) {
-           dwszOutputBufferAlarm = aux.length() + 1;
-
-           bWriteFile = WriteFile(hNamedPipeAlarm, aux.c_str(), dwszOutputBufferAlarm, &dwNoBytesRead, NULL);
-
-           if (!bWriteFile)  cout << "Error when Write PipeAlarm. Error type: " << GetLastError() << endl;
-       }
     }
     CloseHandle(hNamedPipeAlarm);
     CloseHandle(index);
@@ -298,10 +303,11 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
     return 0;
 
 }
+
 unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
     dataProcess data;
     string aux, message;
-    int tam, type;
+    int tam, type, i;
     DWORD dwWaitResultESC;
 
     while (WaitNamedPipe(L"\\\\.\\pipe\\Process", NMPWAIT_USE_DEFAULT_WAIT) == 0);
@@ -322,27 +328,33 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
         WaitForSingleObject(Mutex, INFINITE);
         
         tam = gLinked_list.getSize();
+        i = 0;
 
-        for (int i = 0; i < tam; i++) {
+        while(tam > 0 and i < tam){
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
             if (type == 22) {
                 aux = message;
                 gLinked_list.PosRemove(i + 1);
-                break;
+                tam--;
+                i--;
+               
+                if (aux.length() != 0) {
+                    dwszOutputBufferProcess = aux.length() + 1;
+
+                    bWriteFile = WriteFile(hNamedPipeProcess, aux.c_str(), dwszOutputBufferProcess, &dwNoBytesRead, NULL);
+
+                    if (!bWriteFile)  cout << "Error when Write PipeProcess. Error type: " << GetLastError() << endl;
+                
+                    aux = "";
+                }
             }
+            i++;
 
         }
         ReleaseMutex(Mutex);
         
-        if (aux.length() != 0) {
-            dwszOutputBufferProcess = aux.length() + 1;
-
-            bWriteFile = WriteFile(hNamedPipeProcess, aux.c_str(), dwszOutputBufferProcess, &dwNoBytesRead, NULL);
-
-            if (!bWriteFile)  cout << "Error when Write PipeProcess. Error type: " << GetLastError() << endl;
-        }
     }
 
     CloseHandle(index);
