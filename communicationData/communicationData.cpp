@@ -16,7 +16,7 @@ unsigned __stdcall ThreadRemoveDataProcess(LPVOID index);
 unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index);
 unsigned __stdcall ThreadRemoveDataOptimization(LPVOID index);
 
-HANDLE Mutex;
+HANDLE Mutex, hMutexFile;
 HANDLE hNamedPipeProcess;
 HANDLE hNamedPipeAlarm;
 bool bConnectNamedPipe;
@@ -25,19 +25,22 @@ bool bWriteFile;
 
 DWORD dwszOutputBufferProcess;
 DWORD dwszOutputBufferAlarm;
-DWORD dwNoBytesRead;
+DWORD dwNoBytesRead,
+      dwBytesWritten;
 
 HANDLE hEventC,
 hEventO,
 hEventP,
 hEventA,
-hEventESC;
+hEventESC,
+
+hDiskFile;
 
 HANDLE hThreads[6],
 hThreadsCloseProg;
 bool EXECUTE = TRUE;
 
-DWORD dwWaitResult;
+DWORD dwWaitResult , dwPos;
 unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 
 linked_list gLinked_list;
@@ -74,6 +77,23 @@ int main()
     Mutex = CreateMutex(NULL, FALSE, NULL);
     if (Mutex == NULL)
         cout << "Error when create Mutex. Error type: " << GetLastError() << endl;
+
+    hMutexFile = OpenMutex(MUTEX_ALL_ACCESS, TRUE, L"mutexFile");
+
+    if (hMutexFile == NULL) 
+        cout << "Error when open Mutex. Error type: " << GetLastError() << endl;
+
+    hDiskFile = CreateFile(L"DataOptimization.arq", 
+                           GENERIC_READ | GENERIC_WRITE,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE,
+                            NULL,		
+                            OPEN_ALWAYS,
+                            FILE_ATTRIBUTE_NORMAL,
+                            NULL);
+
+    if (hDiskFile == NULL)
+        cout << "Error when create File. Error type: " << GetLastError() << endl;
+
 
     hThreads[0] = (HANDLE)
         _beginthreadex(NULL, 0, &ThreadOptimization, (LPVOID)0, 0, &dwThreadId);
@@ -218,28 +238,33 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 
 unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
     int tam, type, i;
-    string message, aux;
+    string message;
     DWORD dwWaitResultESC;
+    bool bStatus;
 
     while (EXECUTE) {
         WaitForSingleObject(hEventO, INFINITE);
-        aux = "";
         WaitForSingleObject(Mutex, INFINITE);
 
         tam = gLinked_list.getSize();
-        i = 0;
+        i = tam - 1;
 
-        while(tam > 0 and i < tam){
+        while(i > 0 and gLinked_list.getSize() > 0){
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
             if (type == 11) {
-                aux = message;
                 gLinked_list.PosRemove(i + 1);
+                WaitForSingleObject(hMutexFile, INFINITE);
+                dwPos = SetFilePointer(hDiskFile, 0, NULL, FILE_END);
+                bWriteFile = WriteFile(hDiskFile, message.c_str(), message.length(), &dwBytesWritten, NULL);
+                ReleaseMutex(hMutexFile);
+
+                if (!bWriteFile)  cout << "Error when Write Disk file. Error type: " << GetLastError() << endl;
                 tam--;
-                i--;
+               
             }
-            i++;
+            i--;
         }
         ReleaseMutex(Mutex);
     }
@@ -269,8 +294,8 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
         aux = "";
         WaitForSingleObject(Mutex, INFINITE);
         tam = gLinked_list.getSize();
-        i = 0;
-        while(tam >0 and i< tam){
+        i = tam - 1;
+        while(i >0 and gLinked_list.getSize() > 0){
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
@@ -278,7 +303,6 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
                 aux = message;
                 gLinked_list.PosRemove(i + 1);
                 tam--;
-                i--;
 
                 if (aux.length() != 0) {
                     dwszOutputBufferAlarm = aux.length() + 1;
@@ -290,7 +314,7 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
                     aux = "";
                 }
             }
-            i++;
+            i--;
 
         }
        ReleaseMutex(Mutex);
@@ -322,15 +346,15 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
         0,
         NULL);
 
-    while (1) {
+    while (EXECUTE) {
         WaitForSingleObject(hEventP, INFINITE);
         aux = "";
         WaitForSingleObject(Mutex, INFINITE);
         
         tam = gLinked_list.getSize();
-        i = 0;
+        i = tam - 1;
 
-        while(tam > 0 and i < tam){
+        while(i > 0 and gLinked_list.getSize() > 0){
             message = gLinked_list.getValue(i);
             type = getValue(message, 7, 9);
 
@@ -338,7 +362,6 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
                 aux = message;
                 gLinked_list.PosRemove(i + 1);
                 tam--;
-                i--;
                
                 if (aux.length() != 0) {
                     dwszOutputBufferProcess = aux.length() + 1;
@@ -350,14 +373,14 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
                     aux = "";
                 }
             }
-            i++;
+            i--;
 
         }
         ReleaseMutex(Mutex);
         
     }
 
-    CloseHandle(index);
+    //CloseHandle(index);
     CloseHandle(hNamedPipeProcess);
 
     return 0;

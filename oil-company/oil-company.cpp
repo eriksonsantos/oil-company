@@ -24,6 +24,8 @@ hEventZ,
 hEventESC;
 
 HANDLE hThread[2];
+
+HANDLE hMutexFile;
 unsigned dwThreadId;
 
 unsigned __stdcall  ThreadkeyboardInput(LPVOID index);
@@ -41,7 +43,9 @@ int main()
 	STARTUPINFO si[ProjetsQTD];
 	PROCESS_INFORMATION pi[ProjetsQTD];
 	int i;
-
+	hMutexFile  = CreateMutex(NULL, FALSE, L"mutexFile");
+	if (hMutexFile == NULL)
+		cout << "Error when create Mutex. Error type: " << GetLastError() << endl;
 
 	hEventC = CreateEvent(NULL, TRUE, TRUE, L"EventC");
 	if (hEventC == NULL) cout << "CreateEvent C failed. Error type: " << GetLastError();
@@ -78,7 +82,7 @@ int main()
 	}
 
 
-	bCreateProcess[0] = CreateProcess(
+	/*bCreateProcess[0] = CreateProcess(
 		L"..\\showDataAlarm\\x64\\Debug\\showDataAlarm.exe",
 		NULL,
 		NULL,
@@ -148,7 +152,7 @@ int main()
 	else {
 		cout << "Data communication process ID: " << pi[3].dwProcessId << endl;
 		cout << "Thread ID: " << pi[3].dwThreadId << endl;
-	}
+	}*/
 
 	cout << endl;
 
