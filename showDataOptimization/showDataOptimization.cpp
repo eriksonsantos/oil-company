@@ -1,10 +1,11 @@
 // showProcessData.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
+#pragma warning(disable:4996)
 #include <iostream>
 #include <Windows.h>
 #include "LinkedList.h"
 #include <process.h>
+#include <string.h> 
 
 #define	DEL			0x7F
 
@@ -12,8 +13,12 @@
 char message[Size_Message];
 HANDLE hFile;
 bool EXECUTE = TRUE;
-DWORD dwBytesRead, dwPos;
-HANDLE hMutexFile;
+DWORD dwBytesRead, dwInit, dwEnd,dwCurrent;
+HANDLE hMutexFile,
+
+hSharedMemoryQtdDisk,
+
+hEventReadFile;
 
 
 using namespace std;
@@ -62,6 +67,7 @@ linked_list * lpBuffer;
 string *lpBufferAux;
 HANDLE hThread[2], hEventESC;
 unsigned dwThreadId;
+char* lpImage;
 
 int main()
 {
@@ -72,6 +78,18 @@ int main()
         OPEN_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         NULL);
+
+    hSharedMemoryQtdDisk = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS,  
+        FALSE,                
+        L"QtdValuesInDisk");
+
+    lpImage = (char*)MapViewOfFile(
+        hSharedMemoryQtdDisk,
+        FILE_MAP_READ| FILE_MAP_WRITE,
+        0,					
+        0,					
+        200);
 
     if (hFile == NULL)
         cout << "Error when create/open File. Error type: " << GetLastError() << endl;
@@ -84,6 +102,11 @@ int main()
     hEventESC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventESC");
     if (hEventESC == NULL)
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hEventReadFile = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventReadFile");
+    if (hEventReadFile == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
 
     hThread[0] = (HANDLE)
         _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)0, 0, &dwThreadId);
@@ -104,28 +127,46 @@ int main()
 
 unsigned __stdcall  ThreadMain(LPVOID index) {
     bool bStatus;
-    string aux;
-    char aux2[1] = "";
+    string aux, lastValue, qtdValuesInDisk;
+    int i = 0;
+  
     while (EXECUTE) {
+        WaitForSingleObject(hEventReadFile, INFINITE);
         WaitForSingleObject(hMutexFile, INFINITE);
-        dwPos = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-        bStatus = ReadFile(hFile, &message, Size_Message, &dwBytesRead, NULL);
-        
-        if (!bStatus)  cout << "Error when read Disk file. Error type: " << GetLastError() << endl;
-        aux = message;
-        if (aux.length() > 0) {
-            cout << generateShowMessage(aux) << endl;
 
-            dwPos = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-            bStatus = WriteFile(hFile, "", Size_Message, &dwBytesRead, NULL);
-            if (!bStatus)  cout << "Error when write Disk file. Error type: " << GetLastError() << endl;
+        dwInit = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
+        dwEnd = SetFilePointer(hFile, 0, NULL, FILE_END);
+
+        dwCurrent = SetFilePointer(hFile, 0, NULL, dwInit);
+        i = 0;
+        
+        qtdValuesInDisk = lpImage;
+        while (dwCurrent < dwEnd and stoi(qtdValuesInDisk) > 0) {
+
+            bStatus = ReadFile(hFile, &message, Size_Message, &dwBytesRead, NULL);
+
+            if (!bStatus)  cout << "Error when read Disk file. Error type: " << GetLastError() << endl;
+            aux = message;
+            if (aux.length() > 0) {
+                cout << generateShowMessage(aux) << endl;
+            }
+            dwCurrent = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);
+
+            qtdValuesInDisk = to_string(stoi(qtdValuesInDisk) - 1);
         }
+        CopyMemory(lpImage, to_string(0).c_str(), sizeof(to_string(0).c_str()));
+        
+        dwCurrent = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
         
         
+        ResetEvent(hEventReadFile);
         ReleaseMutex(hMutexFile);
 
     
     }
+
+    bStatus = UnmapViewOfFile(lpImage);
+    if (!bStatus)  cout << "Error when UnmapViewOfFile. Error type: " << GetLastError() << endl;
     return 0;
 }
 

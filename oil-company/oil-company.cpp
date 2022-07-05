@@ -7,6 +7,8 @@ normalmente.
 
 */
 
+#pragma warning(disable:4996)
+
 #include <iostream>
 #include <Windows.h>
 #include <process.h>
@@ -21,9 +23,15 @@ hEventT,
 hEventR,
 hEventL,
 hEventZ,
-hEventESC;
+hEventESC,
+
+hEventReadFile,
+
+hSharedMemoryQtdDisk;
 
 HANDLE hThread[2];
+
+char* lpImage;
 
 HANDLE hMutexFile;
 unsigned dwThreadId;
@@ -35,6 +43,7 @@ bool EXECUTE = TRUE;
 
 #define ProjetsQTD 6
 #define ESC 27
+#define BUF_SIZE 256
 
 using namespace std;
 int main()
@@ -42,6 +51,7 @@ int main()
 	bool bCreateProcess[ProjetsQTD] = { NULL };
 	STARTUPINFO si[ProjetsQTD];
 	PROCESS_INFORMATION pi[ProjetsQTD];
+	string aux;
 	int i;
 	hMutexFile  = CreateMutex(NULL, FALSE, L"mutexFile");
 	if (hMutexFile == NULL)
@@ -73,7 +83,28 @@ int main()
 
 	hEventESC = CreateEvent(NULL, TRUE, FALSE, L"EventESC");
 	if (hEventESC == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
+
+	hEventReadFile = CreateEvent(NULL, TRUE, FALSE, L"EventReadFile");
+	if (hEventReadFile == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
+
+	hSharedMemoryQtdDisk = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+							PAGE_READWRITE,		
+							0,					
+							BUF_SIZE,
+							L"QtdValuesInDisk");	
+
+	if (hSharedMemoryQtdDisk == NULL) cout << "CreateFileMapping failed. Error type: " << GetLastError();
 	
+	lpImage = (char*)MapViewOfFile(
+		hSharedMemoryQtdDisk,
+		FILE_MAP_WRITE,
+		0,
+		0,
+		BUF_SIZE);
+
+	aux = "0";
+	CopyMemory(lpImage, aux.c_str(), sizeof(aux.c_str()));
+
 	for (i = 0;i < ProjetsQTD; i++) {
 
 		ZeroMemory(&si[i], sizeof(si[i]));
@@ -81,8 +112,8 @@ int main()
 		ZeroMemory(&pi[i], sizeof(pi[i]));
 	}
 
-
-	/*bCreateProcess[0] = CreateProcess(
+	/*
+	bCreateProcess[0] = CreateProcess(
 		L"..\\showDataAlarm\\x64\\Debug\\showDataAlarm.exe",
 		NULL,
 		NULL,
@@ -118,7 +149,7 @@ int main()
 		cout << "Thread ID: " << pi[1].dwThreadId << endl;
 	}
 
-	bCreateProcess[2] = CreateProcess(
+	bCreateProcess[3] = CreateProcess(
 		L"..\\showDataOptimization\\x64\\Debug\\showDataOptimization.exe",
 		NULL,
 		NULL,
@@ -130,13 +161,13 @@ int main()
 		&si[2],
 		&pi[2]);
 
-	if (not bCreateProcess[2])   cout << "Error when create Process data exhibition. Error type: " << GetLastError() << endl;
+	if (not bCreateProcess[3])   cout << "Error when create Process data exhibition. Error type: " << GetLastError() << endl;
 	else {
-		cout << "Process Data display process ID: " << pi[2].dwProcessId << endl;
-		cout << "Thread ID: " << pi[2].dwThreadId << endl;
+		cout << "Process Data display process ID: " << pi[3].dwProcessId << endl;
+		cout << "Thread ID: " << pi[3].dwThreadId << endl;
 	}
 
-	bCreateProcess[3] = CreateProcess(
+	bCreateProcess[2] = CreateProcess(
 		L"..\\communicationData\\x64\\Debug\\communicationData.exe",
 		NULL,
 		NULL,
@@ -148,12 +179,12 @@ int main()
 		&si[3],
 		&pi[3]);
 
-	if (not bCreateProcess[3])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
+	if (not bCreateProcess[2])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
 	else {
-		cout << "Data communication process ID: " << pi[3].dwProcessId << endl;
-		cout << "Thread ID: " << pi[3].dwThreadId << endl;
-	}*/
-
+		cout << "Data communication process ID: " << pi[2].dwProcessId << endl;
+		cout << "Thread ID: " << pi[2].dwThreadId << endl;
+	}
+	*/
 	cout << endl;
 
 	hThread[0] = (HANDLE)
