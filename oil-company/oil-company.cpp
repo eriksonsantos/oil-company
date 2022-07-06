@@ -23,17 +23,15 @@ hEventT,
 hEventR,
 hEventL,
 hEventZ,
-hEventESC,
-
-hEventReadFile,
-
-hSharedMemoryQtdDisk;
+hEventESC;
 
 HANDLE hThread[2];
 
 char* lpImage;
 
 HANDLE hMutexFile;
+
+HANDLE hSemaphore;
 unsigned dwThreadId;
 
 unsigned __stdcall  ThreadkeyboardInput(LPVOID index);
@@ -84,27 +82,9 @@ int main()
 	hEventESC = CreateEvent(NULL, TRUE, FALSE, L"EventESC");
 	if (hEventESC == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
 
-	hEventReadFile = CreateEvent(NULL, TRUE, FALSE, L"EventReadFile");
-	if (hEventReadFile == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
+	hSemaphore = CreateSemaphore(NULL, 0, 200, L"SemaphoreDisk");
 
-	hSharedMemoryQtdDisk = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
-							PAGE_READWRITE,		
-							0,					
-							BUF_SIZE,
-							L"QtdValuesInDisk");	
-
-	if (hSharedMemoryQtdDisk == NULL) cout << "CreateFileMapping failed. Error type: " << GetLastError();
 	
-	lpImage = (char*)MapViewOfFile(
-		hSharedMemoryQtdDisk,
-		FILE_MAP_WRITE,
-		0,
-		0,
-		BUF_SIZE);
-
-	aux = "0";
-	CopyMemory(lpImage, aux.c_str(), sizeof(aux.c_str()));
-
 	for (i = 0;i < ProjetsQTD; i++) {
 
 		ZeroMemory(&si[i], sizeof(si[i]));
@@ -112,7 +92,7 @@ int main()
 		ZeroMemory(&pi[i], sizeof(pi[i]));
 	}
 
-	/*
+	
 	bCreateProcess[0] = CreateProcess(
 		L"..\\showDataAlarm\\x64\\Debug\\showDataAlarm.exe",
 		NULL,
@@ -184,7 +164,7 @@ int main()
 		cout << "Data communication process ID: " << pi[2].dwProcessId << endl;
 		cout << "Thread ID: " << pi[2].dwThreadId << endl;
 	}
-	*/
+	
 	cout << endl;
 
 	hThread[0] = (HANDLE)

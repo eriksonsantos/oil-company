@@ -34,11 +34,9 @@ hEventP,
 hEventA,
 hEventESC,
 
-hEventReadFile,
-
 hDiskFile,
 
-hSharedMemoryQtdDisk;
+hSemaphoreDisk;
 
 HANDLE hThreads[6],
 hThreadsCloseProg;
@@ -46,7 +44,6 @@ bool EXECUTE = TRUE;
 
 DWORD dwWaitResult , dwPos;
 
-char* lpImage;
 unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 
 linked_list gLinked_list;
@@ -79,10 +76,6 @@ int main()
     if (hEventESC == NULL)
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
 
-    hEventReadFile = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventReadFile");
-    if (hEventReadFile == NULL)
-        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
-
 
     Mutex = CreateMutex(NULL, FALSE, NULL);
     if (Mutex == NULL)
@@ -104,18 +97,10 @@ int main()
     if (hDiskFile == NULL)
         cout << "Error when create File. Error type: " << GetLastError() << endl;
 
+    hSemaphoreDisk = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, L"SemaphoreDisk");
 
-    hSharedMemoryQtdDisk = OpenFileMapping(
-        FILE_MAP_ALL_ACCESS,
-        FALSE,
-        L"QtdValuesInDisk");
-
-    lpImage = (char*)MapViewOfFile(
-        hSharedMemoryQtdDisk,
-        FILE_MAP_WRITE,
-        0,
-        0,
-        20);
+    if (hSemaphoreDisk == NULL)
+        cout << "Error when open Semaphore. Error type: " << GetLastError() << endl;
 
     hThreads[0] = (HANDLE)
         _beginthreadex(NULL, 0, &ThreadOptimization, (LPVOID)0, 0, &dwThreadId);
@@ -267,43 +252,37 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
     while (EXECUTE) {
         WaitForSingleObject(hEventO, INFINITE);
         WaitForSingleObject(Mutex, INFINITE);
-        WaitForSingleObject(hMutexFile, INFINITE);
+        
 
-        if (lpImage != NULL) {
-            if (stoi(lpImage) == 0) {
-                dwPos = SetFilePointer(hDiskFile, 0, NULL, FILE_BEGIN);
+        tam = gLinked_list.getSize();
+        i = tam - 1;
+
+        while (i > 0 and gLinked_list.getSize() > 0) {
+            message = gLinked_list.getValue(i);
+            type = getValue(message, 7, 9);
+
+            if (type == 11) {
+                gLinked_list.PosRemove(i + 1);
+
+                WaitForSingleObject(hMutexFile, INFINITE);
+
+                bWriteFile = WriteFile(hDiskFile, message.c_str(), message.length(), &dwBytesWritten, NULL);
+
+                if (!bWriteFile)  cout << "Error when Write Disk file. Error type: " << GetLastError() << endl;
+                
+                ReleaseMutex(hMutexFile);
+                ReleaseSemaphore(hSemaphoreDisk, 1, NULL);
+                tam--;
+
             }
-
-            tam = gLinked_list.getSize();
-            i = tam - 1;
-
-            while (i > 0 and gLinked_list.getSize() > 0) {
-                message = gLinked_list.getValue(i);
-                type = getValue(message, 7, 9);
-
-                if (type == 11) {
-                    gLinked_list.PosRemove(i + 1);
-
-                    dwPos = SetFilePointer(hDiskFile, 0, NULL, FILE_CURRENT);
-
-                    bWriteFile = WriteFile(hDiskFile, message.c_str(), message.length(), &dwBytesWritten, NULL);
-                    CopyMemory(lpImage, to_string(stoi(lpImage) + 1).c_str(), sizeof(to_string(stoi(lpImage) + 1).c_str()));
-
-                    SetEvent(hEventReadFile);
-
-                    if (!bWriteFile)  cout << "Error when Write Disk file. Error type: " << GetLastError() << endl;
-                    tam--;
-
-                }
-                i--;
-            }
+            i--;
         }
-        ReleaseMutex(hMutexFile);
+
         ReleaseMutex(Mutex);
     }
+       
+    
 
-    bStatus = UnmapViewOfFile(lpImage);
-    if (!bStatus)  cout << "Error when UnmapViewOfFile. Error type: " << GetLastError() << endl;
     CloseHandle(index);
     return 0;
 }

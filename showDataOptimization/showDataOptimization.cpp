@@ -16,9 +16,7 @@ bool EXECUTE = TRUE;
 DWORD dwBytesRead, dwInit, dwEnd,dwCurrent;
 HANDLE hMutexFile,
 
-hSharedMemoryQtdDisk,
-
-hEventReadFile;
+hSemaphoreDisk;
 
 
 using namespace std;
@@ -79,17 +77,7 @@ int main()
         FILE_ATTRIBUTE_NORMAL,
         NULL);
 
-    hSharedMemoryQtdDisk = OpenFileMapping(
-        FILE_MAP_ALL_ACCESS,  
-        FALSE,                
-        L"QtdValuesInDisk");
-
-    lpImage = (char*)MapViewOfFile(
-        hSharedMemoryQtdDisk,
-        FILE_MAP_READ| FILE_MAP_WRITE,
-        0,					
-        0,					
-        200);
+   
 
     if (hFile == NULL)
         cout << "Error when create/open File. Error type: " << GetLastError() << endl;
@@ -103,9 +91,10 @@ int main()
     if (hEventESC == NULL)
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
 
-    hEventReadFile = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventReadFile");
-    if (hEventReadFile == NULL)
-        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+    hSemaphoreDisk = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE,L"SemaphoreDisk");
+
+    if (hSemaphoreDisk == NULL)
+        cout << "Error when open Semaphore. Error type: " << GetLastError() << endl;
 
 
     hThread[0] = (HANDLE)
@@ -115,7 +104,7 @@ int main()
     hThread[1] = (HANDLE)
         _beginthreadex(NULL, 0, ThreadMain, (LPVOID)1, 0, &dwThreadId);
 
-    if (hThread == NULL) {
+    if (hThread[1] == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
     
@@ -131,42 +120,23 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
     int i = 0;
   
     while (EXECUTE) {
-        WaitForSingleObject(hEventReadFile, INFINITE);
+        
+        WaitForSingleObject(hSemaphoreDisk,INFINITE);
+
         WaitForSingleObject(hMutexFile, INFINITE);
+        bStatus = ReadFile(hFile, &message, Size_Message, &dwBytesRead, NULL);
 
-        dwInit = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-        dwEnd = SetFilePointer(hFile, 0, NULL, FILE_END);
+        if (!bStatus)  cout << "Error when read Disk file. Error type: " << GetLastError() << endl;
 
-        dwCurrent = SetFilePointer(hFile, 0, NULL, dwInit);
-        i = 0;
-        
-        qtdValuesInDisk = lpImage;
-        while (dwCurrent < dwEnd and stoi(qtdValuesInDisk) > 0) {
-
-            bStatus = ReadFile(hFile, &message, Size_Message, &dwBytesRead, NULL);
-
-            if (!bStatus)  cout << "Error when read Disk file. Error type: " << GetLastError() << endl;
-            aux = message;
-            if (aux.length() > 0) {
-                cout << generateShowMessage(aux) << endl;
-            }
-            dwCurrent = SetFilePointer(hFile, 0, NULL, FILE_CURRENT);
-
-            qtdValuesInDisk = to_string(stoi(qtdValuesInDisk) - 1);
-        }
-        CopyMemory(lpImage, to_string(0).c_str(), sizeof(to_string(0).c_str()));
-        
-        dwCurrent = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-        
-        
-        ResetEvent(hEventReadFile);
         ReleaseMutex(hMutexFile);
 
-    
+         aux = message;
+         if (aux.length() > 0) {
+             cout << generateShowMessage(aux) << endl;
+         }
+            
     }
 
-    bStatus = UnmapViewOfFile(lpImage);
-    if (!bStatus)  cout << "Error when UnmapViewOfFile. Error type: " << GetLastError() << endl;
     return 0;
 }
 
@@ -176,13 +146,13 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
 
     while (InterEnd) {
         WaitForSingleObject(hEventESC, INFINITE);
-        //EXECUTE = FALSE;
+        EXECUTE = FALSE;
 
-        /*WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
+        //WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
 
         for (int i = 0; i < 2; i++) {
             GetExitCodeThread(hThread[i], &dwExitCode);
-        }*/
+        }
 
         exit;
         InterEnd = FALSE;
