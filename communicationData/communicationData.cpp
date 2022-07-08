@@ -7,6 +7,7 @@
 #include "DataAlarm.h"
 #include <process.h>
 #include "LinkedList.h"
+#include <ctime>
 
 unsigned __stdcall  ThreadProcess(LPVOID index);
 unsigned __stdcall  ThreadAlarm(LPVOID index);
@@ -191,13 +192,19 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     if (hTimer == NULL)
         cout << "Error when create Timer. Error type: " << GetLastError() << endl;
 
-    Preset.QuadPart = -(1000 * nMultiplicadorParaMs);
 
-    bSucesso = SetWaitableTimer(hTimer, &Preset, 1000, NULL, NULL, FALSE);
-    if (bSucesso == NULL)
-        cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
-
+   
     while (EXECUTE) {
+
+        srand((unsigned)time(0));
+        int period = 1 + (rand() % 5);
+
+        Preset.QuadPart = -(period * 1000 * nMultiplicadorParaMs);
+
+        bSucesso = SetWaitableTimer(hTimer, &Preset, period * 1000, NULL, NULL, FALSE);
+        if (bSucesso == NULL)
+            cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
+
         
         WaitForSingleObject(hEventC, INFINITE);
         
@@ -210,6 +217,8 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         WaitForSingleObject(hTimer, INFINITE);
 
     }
+
+    CloseHandle(hTimer);
     //CloseHandle(index);
     return 0;
 }
@@ -221,19 +230,30 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     BOOL bSucesso;
     LARGE_INTEGER Preset;
 
+    //srand((unsigned)time(0));
+    //int period =  1 + (rand() % 5);
+
     const int nMultiplicadorParaMs = 10000;
 
     hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
     if (hTimer == NULL)
         cout << "Error when create Timer. Error type: " << GetLastError() << endl;
     
-    Preset.QuadPart = -(1000 * nMultiplicadorParaMs);
+    
 
-    bSucesso = SetWaitableTimer(hTimer, &Preset, 1000, NULL, NULL, FALSE);
-    if (bSucesso == NULL)
-        cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
     while (EXECUTE) {
+
+        srand((unsigned)time(0));
+        int period =  1 + (rand() % 5);
+
+        Preset.QuadPart = -(period * 1000 * nMultiplicadorParaMs);
+
+
+        bSucesso = SetWaitableTimer(hTimer, &Preset, period * 1000, NULL, NULL, FALSE);
+        if (bSucesso == NULL)
+            cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
+
         WaitForSingleObject(hEventC, INFINITE);
         aux = data.GenerateData();
 
@@ -246,6 +266,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
         
     }
 
+    CloseHandle(hTimer);
     //CloseHandle(index);
 
     return 0;
@@ -284,6 +305,7 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
         WaitForSingleObject(hTimer, INFINITE);
     }
 
+    CloseHandle(hTimer);
     //CloseHandle(index);
 
     return 0;
