@@ -96,20 +96,30 @@ int main()
     if (hSemaphoreDisk == NULL)
         cout << "Error when open Semaphore. Error type: " << GetLastError() << endl;
 
-
     hThread[0] = (HANDLE)
-        _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)0, 0, &dwThreadId);
+        _beginthreadex(NULL, 0, ThreadMain, (LPVOID)0, 0, &dwThreadId);
 
+    if (hThread[0] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
 
     hThread[1] = (HANDLE)
-        _beginthreadex(NULL, 0, ThreadMain, (LPVOID)1, 0, &dwThreadId);
+        _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)1, 0, &dwThreadId);
 
     if (hThread[1] == NULL) {
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
+
     
     WaitForSingleObject(hThread[0], INFINITE);
     WaitForSingleObject(hThread[1], INFINITE);
+
+    CloseHandle(hMutexFile);
+    CloseHandle(hSemaphoreDisk);
+    CloseHandle(hFile);
+
+    CloseHandle(hThread[0]);
+    CloseHandle(hThread[1]);
    
     return 0;
 }
@@ -136,7 +146,7 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
          }
             
     }
-
+   /* _endthreadex((DWORD)index);*/
     return 0;
 }
 
@@ -148,16 +158,18 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
         WaitForSingleObject(hEventESC, INFINITE);
         EXECUTE = FALSE;
 
-        //WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
+        /*WaitForMultipleObjects(2, hThread, TRUE, INFINITE);*/
 
-        for (int i = 0; i < 2; i++) {
-            GetExitCodeThread(hThread[i], &dwExitCode);
-        }
+       
+        GetExitCodeThread(hThread[0], &dwExitCode);
+        _endthreadex((DWORD)hThread[0]);
+        CloseHandle(hThread[0]);
+        
 
         exit;
         InterEnd = FALSE;
     }
-    //CloseHandle(index);
+    /*_endthreadex((DWORD)index);*/
     return 0;
 }
 

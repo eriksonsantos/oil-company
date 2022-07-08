@@ -13,6 +13,8 @@ unsigned __stdcall  ThreadProcess(LPVOID index);
 unsigned __stdcall  ThreadAlarm(LPVOID index);
 unsigned __stdcall ThreadOptimization(LPVOID index);
 
+unsigned __stdcall ThreadVerifyListSize(LPVOID index);
+
 unsigned __stdcall ThreadRemoveDataProcess(LPVOID index);
 unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index);
 unsigned __stdcall ThreadRemoveDataOptimization(LPVOID index);
@@ -36,10 +38,10 @@ hEventA,
 hEventESC,
 
 hDiskFile,
-
+hEventFullList,
 hSemaphoreDisk;
 
-HANDLE hThreads[6],
+HANDLE hThreads[7],
 hThreadsCloseProg;
 bool EXECUTE = TRUE;
 
@@ -69,6 +71,9 @@ int main()
     hEventA = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventA");
     if (hEventA == NULL)
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hEventFullList = CreateEvent(NULL, FALSE, FALSE, L"EventFullList");
+    if (hEventFullList == NULL) cout << "CreateEvent FullList failed. Error type: " << GetLastError();
 
     hEventC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventC");
     if (hEventC == NULL)
@@ -144,6 +149,13 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
+    hThreads[6] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadVerifyListSize, (LPVOID)6, 0, &dwThreadId);
+
+    if (hThreads[6] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+
     hThreadsCloseProg = (HANDLE)
         _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)6, 0, &dwThreadId);
 
@@ -160,6 +172,8 @@ int main()
     WaitForSingleObject(hThreads[4], INFINITE);
     WaitForSingleObject(hThreads[5], INFINITE);
 
+    WaitForSingleObject(hThreads[6], INFINITE);
+
     WaitForSingleObject(ThreadCloseProgram, INFINITE);
 
 
@@ -171,6 +185,7 @@ int main()
     CloseHandle(hEventP);
     CloseHandle(hEventA);
     CloseHandle(hEventESC);
+    CloseHandle(hEventFullList);
 
     CloseHandle(hThreadsCloseProg);
 
@@ -205,8 +220,9 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         if (bSucesso == NULL)
             cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
-        
+        WaitForSingleObject(hEventFullList, INFINITE);
         WaitForSingleObject(hEventC, INFINITE);
+
         
         aux = data.GenerateData();
 
@@ -230,9 +246,6 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     BOOL bSucesso;
     LARGE_INTEGER Preset;
 
-    //srand((unsigned)time(0));
-    //int period =  1 + (rand() % 5);
-
     const int nMultiplicadorParaMs = 10000;
 
     hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
@@ -254,6 +267,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
         if (bSucesso == NULL)
             cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
+        WaitForSingleObject(hEventFullList, INFINITE);
         WaitForSingleObject(hEventC, INFINITE);
         aux = data.GenerateData();
 
@@ -267,7 +281,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     }
 
     CloseHandle(hTimer);
-    //CloseHandle(index);
+    _endthreadex((DWORD)index);
 
     return 0;
 
@@ -294,6 +308,7 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 
 
     while (EXECUTE) {
+        WaitForSingleObject(hEventFullList, INFINITE);
         WaitForSingleObject(hEventC, INFINITE);
         aux = data.GenerateData();
 
@@ -306,7 +321,7 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
     }
 
     CloseHandle(hTimer);
-    //CloseHandle(index);
+    _endthreadex((DWORD)index);
 
     return 0;
 
@@ -353,7 +368,7 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
        
     
 
-    CloseHandle(index);
+    _endthreadex((DWORD)index);
     return 0;
 }
 unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
@@ -406,7 +421,7 @@ unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index) {
 
     }
     CloseHandle(hNamedPipeAlarm);
-    CloseHandle(index);
+    _endthreadex((DWORD)index);
 
 
     return 0;
@@ -465,9 +480,41 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
         
     }
 
-    //CloseHandle(index);
+    
     CloseHandle(hNamedPipeProcess);
+    _endthreadex((DWORD)index);
+    return 0;
 
+}
+
+unsigned __stdcall ThreadVerifyListSize(LPVOID index) {
+    int tam, first;
+    first = 0;
+    while (EXECUTE) {
+        WaitForSingleObject(Mutex, INFINITE);
+        tam = gLinked_list.getSize();
+        
+        if (tam >= 100) {
+            if (first == 0) {
+                cout << "A tarefa de comunicacao de dados foi bloqueada.\n";
+                first = 1;
+            }
+
+            ResetEvent(hEventFullList);
+        }
+        else {
+            SetEvent(hEventFullList);
+
+            if (first == 1) {
+                cout << "A tarefa de comunicacao de dados foi desbloqueada.\n";
+                first = 0;
+            }
+            
+        }
+        ReleaseMutex(Mutex);
+
+        
+    }
     return 0;
 
 }
@@ -479,7 +526,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
         WaitForSingleObject(hEventESC, INFINITE);
         EXECUTE = FALSE;
 
-        WaitForMultipleObjects(5, hThreads, TRUE, INFINITE);
+        //WaitForMultipleObjects(5, hThreads, TRUE, INFINITE);
 
         for (int i = 0; i < 5; i++) {
             GetExitCodeThread(hThreads[i], &dwExitCode);
@@ -488,6 +535,6 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
         exit;
         InterEnd = FALSE;
     }
-    //CloseHandle(index);
+    _endthreadex((DWORD)index);
     return 0;
 }
