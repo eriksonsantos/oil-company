@@ -23,9 +23,6 @@ HANDLE hNamedPipeAlarm;
 bool bConnectNamedPipe;
 bool bWriteFile;
 
-LARGE_INTEGER Preset;
-
-
 DWORD dwszOutputBufferProcess;
 DWORD dwszOutputBufferAlarm;
 DWORD dwNoBytesRead,
@@ -89,11 +86,11 @@ int main()
     if (hMutexFile == NULL) 
         cout << "Error when open Mutex. Error type: " << GetLastError() << endl;
 
-    hDiskFile = CreateFile(L"DataOptimization.arq", 
+    hDiskFile = CreateFile(L"../DataOptimization.arq", 
                            GENERIC_READ | GENERIC_WRITE,
                             FILE_SHARE_READ | FILE_SHARE_WRITE,
                             NULL,		
-                            OPEN_ALWAYS,
+                            CREATE_ALWAYS,
                             FILE_ATTRIBUTE_NORMAL,
                             NULL);
 
@@ -185,6 +182,7 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     DWORD dwWaitResultESC;
     HANDLE hTimer;
     BOOL bSucesso;
+    LARGE_INTEGER Preset;
 
     const int nMultiplicadorParaMs = 10000;
 
@@ -209,6 +207,7 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         gLinked_list.PosInsert(aux, 1);
         
         ReleaseMutex(Mutex);
+        WaitForSingleObject(hTimer, INFINITE);
 
     }
     //CloseHandle(index);
@@ -220,6 +219,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     DWORD dwWaitResultESC;
     HANDLE hTimer;
     BOOL bSucesso;
+    LARGE_INTEGER Preset;
 
     const int nMultiplicadorParaMs = 10000;
 
@@ -241,6 +241,7 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
         gLinked_list.PosInsert(aux, 1);
 
         ReleaseMutex(Mutex);
+        WaitForSingleObject(hTimer, INFINITE);
 
         
     }
@@ -256,6 +257,7 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
     DWORD dwWaitResultESC;
     HANDLE hTimer;
     BOOL bSucesso;
+    LARGE_INTEGER Preset;
 
     const int nMultiplicadorParaMs = 10000;
 
@@ -278,6 +280,8 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
         gLinked_list.PosInsert(aux, 1);
 
         ReleaseMutex(Mutex);
+
+        WaitForSingleObject(hTimer, INFINITE);
     }
 
     //CloseHandle(index);

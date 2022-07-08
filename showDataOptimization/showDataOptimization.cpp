@@ -69,7 +69,7 @@ char* lpImage;
 
 int main()
 {
-    hFile = CreateFile(L"../communicationData/DataOptimization.arq",
+    hFile = CreateFile(L"../DataOptimization.arq",
         GENERIC_READ | GENERIC_WRITE,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         NULL,
