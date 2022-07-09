@@ -45,7 +45,7 @@ bool EXECUTE = TRUE;
 #define ProjetsQTD 6
 #define ESC 27
 #define BUF_SIZE 256
-#define MAX_DiskFile 10
+#define MAX_DiskFile 200
 
 using namespace std;
 int main()

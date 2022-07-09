@@ -66,7 +66,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 
 linked_list gLinked_list;
 
-#define MAX_FileDisk 10
+#define MAX_FileDisk 200
 #define Max_SizeList 100
 
 using namespace std;
@@ -617,24 +617,28 @@ unsigned __stdcall ThreadVerifyQtdDataDontReadInDiskFile(LPVOID index) {
     int tam, first,i;
     first = 0;
     tam = 0;
+    string aux;
     while (EXECUTE) {
-        WaitForSingleObject(hMutexValuesDontRead, INFINITE);
+        //WaitForSingleObject(hMutexValuesDontRead, INFINITE);
         /*if(stoi(qtdValuesDontRead) != MAX_FileDisk)*/  
 
-        if(qtdDiskValuesDontRead != NULL)
-            qtdValuesDontRead = qtdDiskValuesDontRead;
+        if (qtdDiskValuesDontRead != NULL) {
+            aux = qtdDiskValuesDontRead;
+            tam = stoi(aux);
+
+        }
 
         /*cout << "\nQTD Values dont read: " << qtdValuesDontRead << endl;
         cout << "\nPosicao : " << posDiskFile << endl;*/
        
-        if (qtdDiskValuesDontRead != NULL and qtdValuesDontRead.length() > 0) {
+        /*if (qtdDiskValuesDontRead != NULL and qtdValuesDontRead.length() > 0) {
             tam = stoi(qtdValuesDontRead);
 
            CopyMemory(qtdDiskValuesDontRead,
                 qtdValuesDontRead.c_str(), sizeof(qtdValuesDontRead.c_str()));
 
         }
-        ReleaseMutex(hMutexValuesDontRead);
+        ReleaseMutex(hMutexValuesDontRead);*/
 
         if (tam >= MAX_FileDisk) {
             if (first == 0) {
