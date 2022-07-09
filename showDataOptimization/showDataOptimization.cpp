@@ -252,7 +252,7 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
          
             
     }
-   /* _endthreadex((DWORD)index);*/
+   
     return 0;
 }
 
@@ -264,7 +264,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
         WaitForSingleObject(hEventESC, INFINITE);
         EXECUTE = FALSE;
 
-        /*WaitForMultipleObjects(2, hThread, TRUE, INFINITE);*/
+       
 
        
         GetExitCodeThread(hThread[0], &dwExitCode);
@@ -275,7 +275,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
         exit;
         InterEnd = FALSE;
     }
-    /*_endthreadex((DWORD)index);*/
+   
     return 0;
 }
 
