@@ -10,6 +10,9 @@
 #define	DEL			0x7F
 
 #define Size_Message 38
+
+#define MAX_FileDisk 10
+
 char message[Size_Message];
 HANDLE hFile;
 bool EXECUTE = TRUE;
@@ -59,13 +62,15 @@ string generateShowMessage(string text) {
 unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 unsigned __stdcall  ThreadMain(LPVOID index);
 
-HANDLE hFileMap;
+HANDLE hQtdDataDisk;
+HANDLE hQtdValuesDontRead;
 bool bResult = FALSE;
 linked_list * lpBuffer;
 string *lpBufferAux;
-HANDLE hThread[2], hEventESC;
+HANDLE hThread[2], hEventESC, hEventWriteDisk, hEventT;
 unsigned dwThreadId;
-char* lpImage;
+char* qtdDiskData;
+char* qtdDiskValuesDontRead;
 
 int main()
 {
@@ -82,6 +87,44 @@ int main()
     if (hFile == NULL)
         cout << "Error when create/open File. Error type: " << GetLastError() << endl;
 
+    hQtdDataDisk = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS,
+        FALSE,
+        L"QtdValuesInDisk");
+
+    if (hQtdDataDisk == NULL)
+        cout << "Error when  Open FileMapping. Error type: " << GetLastError() << endl;
+
+    qtdDiskData = (char*)MapViewOfFile(
+        hQtdDataDisk,
+        FILE_MAP_WRITE,
+        0,
+        0,
+        256);
+
+    if (qtdDiskData == NULL)
+        cout << "Error when MapViewOfFile. Error type: " << GetLastError() << endl;
+
+    
+
+    hQtdValuesDontRead = OpenFileMapping(
+            FILE_MAP_ALL_ACCESS,
+            FALSE,
+            L"QtdValuesDontRead");
+
+    if (hQtdValuesDontRead == NULL)
+        cout << "Error when  Open FileMapping. Error type: " << GetLastError() << endl;
+
+    qtdDiskValuesDontRead = (char*)MapViewOfFile(
+        hQtdValuesDontRead,
+        FILE_MAP_WRITE,
+        0,
+        0,
+        256);
+
+    if (qtdDiskValuesDontRead == NULL)
+        cout << "Error when MapViewOfFile. Error type: " << GetLastError() << endl;
+
     hMutexFile = OpenMutex(MUTEX_ALL_ACCESS, TRUE, L"mutexFile");
 
     if (hMutexFile == NULL)
@@ -89,6 +132,13 @@ int main()
 
     hEventESC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventESC");
     if (hEventESC == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hEventT = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventT");
+    if (hEventT == NULL)  cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
+    hEventWriteDisk = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventWriteDisk");
+    if (hEventWriteDisk == NULL)
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
 
     hSemaphoreDisk = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE,L"SemaphoreDisk");
@@ -126,24 +176,80 @@ int main()
 
 unsigned __stdcall  ThreadMain(LPVOID index) {
     bool bStatus;
-    string aux, lastValue, qtdValuesInDisk;
+    string aux, lastValue, posDiskFile, sendMessage;
+    string qtdValuesDontRead = "0";
     int i = 0;
-  
+    char  buff[100];
+    DWORD dwPos;
+   
     while (EXECUTE) {
         
-        WaitForSingleObject(hSemaphoreDisk,INFINITE);
-
+        WaitForSingleObject(hEventT, INFINITE);
+        //WaitForSingleObject(hSemaphoreDisk, INFINITE);
         WaitForSingleObject(hMutexFile, INFINITE);
-        bStatus = ReadFile(hFile, &message, Size_Message, &dwBytesRead, NULL);
+        
+        if(qtdDiskValuesDontRead != NULL)
+            qtdValuesDontRead = qtdDiskValuesDontRead;
 
-        if (!bStatus)  cout << "Error when read Disk file. Error type: " << GetLastError() << endl;
+        while (stoi(qtdValuesDontRead) > 1) {
+            if (qtdDiskData != NULL)
+                posDiskFile = qtdDiskData;
 
-        ReleaseMutex(hMutexFile);
+            if (stoi(posDiskFile) == 1) {
+                WaitForSingleObject(hEventWriteDisk, INFINITE);
+                dwPos = SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
+                if (dwPos == INVALID_SET_FILE_POINTER)
+                    cout << "Error when use SetFilePointer. Error type: " << GetLastError() << endl;
 
-         aux = message;
-         if (aux.length() > 0) {
-             cout << generateShowMessage(aux) << endl;
-         }
+
+            }
+
+            bStatus = ReadFile(hFile, &message, Size_Message, &dwBytesRead, NULL);
+
+            if (!bStatus)  cout << "Error when read Disk file. Error type: " << GetLastError() << endl;
+
+            if (stoi(posDiskFile) == 1) {
+                lastValue = message;
+            }
+
+            aux = message;
+            if (aux.length() > 0) {
+                sendMessage = generateShowMessage(aux);
+                if (stoi(posDiskFile) == 1) {
+                    cout << sendMessage << endl;
+                    lastValue = sendMessage;
+
+                    qtdValuesDontRead = qtdDiskValuesDontRead;
+                    qtdValuesDontRead = to_string(stoi(qtdValuesDontRead) - 1);
+
+                    if (stoi(qtdValuesDontRead) <= 0)
+                        qtdValuesDontRead = "0";
+
+                   /* cout << qtdValuesDontRead << endl;*/
+                    if(qtdDiskValuesDontRead != NULL)
+                        CopyMemory(qtdDiskValuesDontRead,
+                            qtdValuesDontRead.c_str(), sizeof(qtdValuesDontRead.c_str()));
+                }
+                else if(lastValue != sendMessage) {
+                    cout << sendMessage << endl;
+                    lastValue = sendMessage;
+
+                    qtdValuesDontRead = qtdDiskValuesDontRead;
+                    qtdValuesDontRead = to_string(stoi(qtdValuesDontRead) - 1);
+
+                    if (stoi(qtdValuesDontRead) <= 0)
+                        qtdValuesDontRead = "0";
+
+                    if(qtdDiskValuesDontRead != NULL)
+                        CopyMemory(qtdDiskValuesDontRead,
+                            qtdValuesDontRead.c_str(), sizeof(qtdValuesDontRead.c_str()));
+
+                }
+            }
+        }
+         ResetEvent(hEventWriteDisk);
+         ReleaseMutex(hMutexFile);
+         
             
     }
    /* _endthreadex((DWORD)index);*/

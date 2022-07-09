@@ -23,14 +23,17 @@ hEventT,
 hEventR,
 hEventL,
 hEventZ,
-hEventESC;
+hEventESC,
+
+hEventWriteDisk;
 
 HANDLE hThread[2];
 
-char* lpImage;
+char* qtdValuesDisk;
+char* qtdValuesDontReadDisk;
 
 HANDLE hMutexFile;
-
+HANDLE hQtdValuesDisk, hQtdValuesDontReadDisk;
 HANDLE hSemaphore;
 unsigned dwThreadId;
 
@@ -42,6 +45,7 @@ bool EXECUTE = TRUE;
 #define ProjetsQTD 6
 #define ESC 27
 #define BUF_SIZE 256
+#define MAX_DiskFile 10
 
 using namespace std;
 int main()
@@ -82,9 +86,53 @@ int main()
 	hEventESC = CreateEvent(NULL, TRUE, FALSE, L"EventESC");
 	if (hEventESC == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
 
-	hSemaphore = CreateSemaphore(NULL, 0, 200, L"SemaphoreDisk");
+	hEventWriteDisk = CreateEvent(NULL, FALSE, FALSE, L"EventWriteDisk");
+	if (hEventWriteDisk == NULL) cout << "CreateEvent WriteDisk failed. Error type: " << GetLastError();
+
+	hSemaphore = CreateSemaphore(NULL, 0, MAX_DiskFile, L"SemaphoreDisk");
+
+	hQtdValuesDisk = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+		PAGE_READWRITE,
+		0,
+		BUF_SIZE,
+		L"QtdValuesInDisk");
+
+	if (hQtdValuesDisk == NULL)
+		cout << "CreateFileMapping failed. Error type: " << GetLastError();
+
+	qtdValuesDisk = (char*)MapViewOfFile(
+		hQtdValuesDisk,
+		FILE_MAP_WRITE,
+		0,
+		0,
+		BUF_SIZE);
+
+	if (qtdValuesDisk == NULL) cout << "MapViewOfFile failed. Error type: " << GetLastError();
+
+
+	hQtdValuesDontReadDisk = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+		PAGE_READWRITE,
+		0,
+		BUF_SIZE,
+		L"QtdValuesDontRead");
+
+	if (hQtdValuesDontReadDisk == NULL)
+		cout << "CreateFileMapping failed. Error type: " << GetLastError();
+
+	qtdValuesDontReadDisk = (char*)MapViewOfFile(
+		hQtdValuesDontReadDisk,
+		FILE_MAP_WRITE,
+		0,
+		0,
+		BUF_SIZE);
+
+	if (qtdValuesDontReadDisk == NULL) cout << "MapViewOfFile failed. Error type: " << GetLastError();
 
 	
+	aux = "0";
+	CopyMemory(qtdValuesDisk, aux.c_str(), sizeof(aux.c_str()));
+	CopyMemory(qtdValuesDontReadDisk, aux.c_str(), sizeof(aux.c_str()));
+
 	for (i = 0;i < ProjetsQTD; i++) {
 
 		ZeroMemory(&si[i], sizeof(si[i]));
@@ -275,6 +323,10 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			else {
 				bResult = ResetEvent(hEventT);
 				flags[4] = 1;
+				
+				//ReleaseSemaphore(hSemaphore, 1, NULL);
+				//SetEvent(hEventFullFileDisk);
+
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
