@@ -253,17 +253,8 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
-    
-
-    WaitForSingleObject(hThreads[0], INFINITE);
-    WaitForSingleObject(hThreads[1], INFINITE);
-    WaitForSingleObject(hThreads[2], INFINITE);
-    WaitForSingleObject(hThreads[3], INFINITE);
-    WaitForSingleObject(hThreads[4], INFINITE);
-    WaitForSingleObject(hThreads[5], INFINITE);
-
-    WaitForSingleObject(hThreads[6], INFINITE);
-    WaitForSingleObject(hThreads[7], INFINITE);
+   
+    WaitForMultipleObjects(8,hThreads,TRUE,INFINITE);
 
     WaitForSingleObject(ThreadCloseProgram, INFINITE);
 
@@ -291,12 +282,7 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     dataOptimization data;
     string aux;
     DWORD dwWaitResultESC;
-    //HANDLE hTimer;
-    //BOOL bSucesso;
-    //LARGE_INTEGER Preset;
-
-    //const int nMultiplicadorParaMs = 10000;
-
+    
     hTimerOptmization = CreateWaitableTimer(NULL, FALSE, NULL);
     
     if (hTimerOptmization == NULL)
@@ -329,20 +315,14 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
 
     }
 
-    //CloseHandle(hTimer);
-    //CloseHandle(index);
+    _endthreadex((DWORD)index);
     return 0;
 }
 unsigned __stdcall  ThreadAlarm(LPVOID index) {
     dataAlarm data;
     string aux;
     DWORD dwWaitResultESC;
-    //HANDLE hTimer;
-    //BOOL bSucesso;
-    //LARGE_INTEGER Preset;
-
-    //const int nMultiplicadorParaMs = 10000;
-
+  
     hTimerAlarm = CreateWaitableTimer(NULL, FALSE, NULL);
     if (hTimerAlarm == NULL)
         cout << "Error when create Timer. Error type: " << GetLastError() << endl;
@@ -375,7 +355,6 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
         
     }
 
-    //CloseHandle(hTimer);
     _endthreadex((DWORD)index);
 
     return 0;
@@ -385,11 +364,6 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
     dataProcess data;
     string aux;
     DWORD dwWaitResultESC;
-    //HANDLE hTimer;
-    //BOOL bSucesso;
-    //LARGE_INTEGER Preset;
-
-    //const int nMultiplicadorParaMs = 10000;
 
     hTimerProcess = CreateWaitableTimer(NULL, FALSE, NULL);
     if (hTimerProcess == NULL)
@@ -415,7 +389,6 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
         WaitForSingleObject(hTimerProcess, INFINITE);
     }
 
-    //CloseHandle(hTimer);
     _endthreadex((DWORD)index);
 
     return 0;
@@ -631,8 +604,6 @@ unsigned __stdcall ThreadVerifyQtdDataDontReadInDiskFile(LPVOID index) {
     tam = 0;
     string aux;
     while (EXECUTE) {
-        //WaitForSingleObject(hMutexValuesDontRead, INFINITE);
-        /*if(stoi(qtdValuesDontRead) != MAX_FileDisk)*/  
 
         if (qtdDiskValuesDontRead != NULL) {
             aux = qtdDiskValuesDontRead;
@@ -640,21 +611,9 @@ unsigned __stdcall ThreadVerifyQtdDataDontReadInDiskFile(LPVOID index) {
 
         }
 
-        /*cout << "\nQTD Values dont read: " << qtdValuesDontRead << endl;
-        cout << "\nPosicao : " << posDiskFile << endl;*/
-       
-        /*if (qtdDiskValuesDontRead != NULL and qtdValuesDontRead.length() > 0) {
-            tam = stoi(qtdValuesDontRead);
-
-           CopyMemory(qtdDiskValuesDontRead,
-                qtdValuesDontRead.c_str(), sizeof(qtdValuesDontRead.c_str()));
-
-        }
-        ReleaseMutex(hMutexValuesDontRead);*/
-
         if (tam >= MAX_FileDisk) {
             if (first == 0) {
-                cout << "A tarefa de retirada de dados de otimizacao foi bloqueada.\n";
+                cout << "A tarefa de retirada de dados de otimizacao foi bloqueada devido ao arquivo em disco estar cheio.\n";
                 first = 1;
 
             }
@@ -685,7 +644,7 @@ unsigned __stdcall ThreadVerifyListSize(LPVOID index) {
         
         if (tam >= Max_SizeList) {
             if (first == 0) {
-                cout << "A tarefa de comunicacao de dados foi bloqueada.\n";
+                cout << "A tarefa de comunicacao de dados foi bloqueada devido a lista estar cheia.\n";
                 first = 1;
             }
 
@@ -714,8 +673,6 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
     while (InterEnd) {
         WaitForSingleObject(hEventESC, INFINITE);
         EXECUTE = FALSE;
-
-        //WaitForMultipleObjects(5, hThreads, TRUE, INFINITE);
 
         for (int i = 0; i < 5; i++) {
             GetExitCodeThread(hThreads[i], &dwExitCode);
