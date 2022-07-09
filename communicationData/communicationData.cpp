@@ -28,6 +28,14 @@ HANDLE hNamedPipeAlarm;
 bool bConnectNamedPipe;
 bool bWriteFile;
 
+HANDLE hTimerOptmization,
+hTimerAlarm,
+hTimerProcess;
+
+const int nConvertToMs = 10000;
+BOOL bSucess;
+LARGE_INTEGER Preset;
+
 DWORD dwszOutputBufferProcess,
     dwszOutputBufferAlarm,
     dwNoBytesRead,
@@ -259,6 +267,10 @@ int main()
 
     WaitForSingleObject(ThreadCloseProgram, INFINITE);
 
+    CloseHandle(hTimerOptmization);
+    CloseHandle(hTimerAlarm);
+    CloseHandle(hTimerProcess);
+
 
     for(int i=0; i< 7;i++)
         CloseHandle(hThreads[i]);
@@ -279,15 +291,15 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     dataOptimization data;
     string aux;
     DWORD dwWaitResultESC;
-    HANDLE hTimer;
-    BOOL bSucesso;
-    LARGE_INTEGER Preset;
+    //HANDLE hTimer;
+    //BOOL bSucesso;
+    //LARGE_INTEGER Preset;
 
-    const int nMultiplicadorParaMs = 10000;
+    //const int nMultiplicadorParaMs = 10000;
 
-    hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
+    hTimerOptmization = CreateWaitableTimer(NULL, FALSE, NULL);
     
-    if (hTimer == NULL)
+    if (hTimerOptmization == NULL)
         cout << "Error when create Timer. Error type: " << GetLastError() << endl;
 
 
@@ -297,10 +309,10 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         srand((unsigned)time(0));
         int period = 1 + (rand() % 5);
 
-        Preset.QuadPart = -(period * 1000 * nMultiplicadorParaMs);
+        Preset.QuadPart = -(period * 1000 * nConvertToMs);
 
-        bSucesso = SetWaitableTimer(hTimer, &Preset, period * 1000, NULL, NULL, FALSE);
-        if (bSucesso == NULL)
+        bSucess = SetWaitableTimer(hTimerOptmization, &Preset, period * 1000, NULL, NULL, FALSE);
+        if (bSucess == NULL)
             cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
         WaitForSingleObject(hEventFullList, INFINITE);
@@ -313,11 +325,11 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         gLinked_list.PosInsert(aux, 1);
         
         ReleaseMutex(Mutex);
-        WaitForSingleObject(hTimer, INFINITE);
+        WaitForSingleObject(hTimerOptmization, INFINITE);
 
     }
 
-    CloseHandle(hTimer);
+    //CloseHandle(hTimer);
     //CloseHandle(index);
     return 0;
 }
@@ -325,14 +337,14 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
     dataAlarm data;
     string aux;
     DWORD dwWaitResultESC;
-    HANDLE hTimer;
-    BOOL bSucesso;
-    LARGE_INTEGER Preset;
+    //HANDLE hTimer;
+    //BOOL bSucesso;
+    //LARGE_INTEGER Preset;
 
-    const int nMultiplicadorParaMs = 10000;
+    //const int nMultiplicadorParaMs = 10000;
 
-    hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
-    if (hTimer == NULL)
+    hTimerAlarm = CreateWaitableTimer(NULL, FALSE, NULL);
+    if (hTimerAlarm == NULL)
         cout << "Error when create Timer. Error type: " << GetLastError() << endl;
     
     
@@ -343,11 +355,11 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
         srand((unsigned)time(0));
         int period =  1 + (rand() % 5);
 
-        Preset.QuadPart = -(period * 1000 * nMultiplicadorParaMs);
+        Preset.QuadPart = -(period * 1000 * nConvertToMs);
 
 
-        bSucesso = SetWaitableTimer(hTimer, &Preset, period * 1000, NULL, NULL, FALSE);
-        if (bSucesso == NULL)
+        bSucess = SetWaitableTimer(hTimerAlarm, &Preset, period * 1000, NULL, NULL, FALSE);
+        if (bSucess == NULL)
             cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
         WaitForSingleObject(hEventC, INFINITE);
@@ -358,12 +370,12 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
         gLinked_list.PosInsert(aux, 1);
 
         ReleaseMutex(Mutex);
-        WaitForSingleObject(hTimer, INFINITE);
+        WaitForSingleObject(hTimerAlarm, INFINITE);
 
         
     }
 
-    CloseHandle(hTimer);
+    //CloseHandle(hTimer);
     _endthreadex((DWORD)index);
 
     return 0;
@@ -373,20 +385,20 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
     dataProcess data;
     string aux;
     DWORD dwWaitResultESC;
-    HANDLE hTimer;
-    BOOL bSucesso;
-    LARGE_INTEGER Preset;
+    //HANDLE hTimer;
+    //BOOL bSucesso;
+    //LARGE_INTEGER Preset;
 
-    const int nMultiplicadorParaMs = 10000;
+    //const int nMultiplicadorParaMs = 10000;
 
-    hTimer = CreateWaitableTimer(NULL, FALSE, NULL);
-    if (hTimer == NULL)
+    hTimerProcess = CreateWaitableTimer(NULL, FALSE, NULL);
+    if (hTimerProcess == NULL)
         cout << "Error when create Timer. Error type: " << GetLastError() << endl;
 
-    Preset.QuadPart = -(500 * nMultiplicadorParaMs);
+    Preset.QuadPart = -(500 * nConvertToMs);
 
-    bSucesso = SetWaitableTimer(hTimer, &Preset, 500, NULL, NULL, FALSE);
-    if (bSucesso == NULL)
+    bSucess = SetWaitableTimer(hTimerProcess, &Preset, 500, NULL, NULL, FALSE);
+    if (bSucess == NULL)
         cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
 
@@ -400,10 +412,10 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 
         ReleaseMutex(Mutex);
 
-        WaitForSingleObject(hTimer, INFINITE);
+        WaitForSingleObject(hTimerProcess, INFINITE);
     }
 
-    CloseHandle(hTimer);
+    //CloseHandle(hTimer);
     _endthreadex((DWORD)index);
 
     return 0;
