@@ -91,7 +91,11 @@ int main()
 
 	hSemaphore = CreateSemaphore(NULL, 0, MAX_DiskFile, L"SemaphoreDisk");
 
-	hQtdValuesDisk = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+
+	if (hSemaphore == NULL)
+		cout << "Semaphore failed. Error type: " << GetLastError();
+
+	hQtdValuesDisk = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
 		PAGE_READWRITE,
 		0,
 		BUF_SIZE,
@@ -110,7 +114,7 @@ int main()
 	if (qtdValuesDisk == NULL) cout << "MapViewOfFile failed. Error type: " << GetLastError();
 
 
-	hQtdValuesDontReadDisk = CreateFileMapping((HANDLE)0xFFFFFFFF, NULL,
+	hQtdValuesDontReadDisk = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
 		PAGE_READWRITE,
 		0,
 		BUF_SIZE,
@@ -263,9 +267,11 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[0] == 1) {
 				bResult = SetEvent(hEventC);
 				flags[0] = 0;
+				cout << "Tarefa de comunicacao dados desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventC);
+				cout << "Tarefa de comunicacao de dados bloqueada" << endl;
 				flags[0] = 1;
 			}
 			if (!bResult) {
@@ -277,10 +283,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[1] == 1) {
 				bResult = SetEvent(hEventO);
 				flags[1] = 0;
+				cout << "Tarefa de retirada de dados de otimizacao desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventO);
 				flags[1] = 1;
+				cout << "Tarefa de retirada de dados de otimizacao bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -291,9 +299,11 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[2] == 1) {
 				bResult = SetEvent(hEventP);
 				flags[2] = 0;
+				cout << "Tarefa de retirada de dados de processo desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventP);
+				cout << "Tarefa de retirada de dados de processo bloqueada" << endl;
 				flags[2] = 1;
 			}
 			if (!bResult) {
@@ -305,10 +315,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[3] == 1) {
 				bResult = SetEvent(hEventA);
 				flags[3] = 0;
+				cout << "Tarefa de retirada de alarmes desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventA);
 				flags[3] = 1;
+				cout << "Tarefa de retirada de alarmes bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -319,13 +331,13 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[4] == 1) {
 				bResult = SetEvent(hEventT);
 				flags[4] = 0;
+				cout << "Tarefa de exibicao de dados de otimizacao desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventT);
 				flags[4] = 1;
+				cout << "Tarefa de exibicao de dados de otimizacao bloqueada" << endl;
 				
-				//ReleaseSemaphore(hSemaphore, 1, NULL);
-				//SetEvent(hEventFullFileDisk);
 
 			}
 			if (!bResult) {
@@ -337,10 +349,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[5] == 1) {
 				bResult = SetEvent(hEventR);
 				flags[5] = 0;
+				cout << "Tarefa de exibicao de dados de processo desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventR);
 				flags[5] = 1;
+				cout << "Tarefa de exibicao de dados de otimizacao bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -351,10 +365,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[6] == 1) {
 				bResult = SetEvent(hEventL);
 				flags[6] = 0;
+				cout << "Tarefa de exibicao de alarmes desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventL);
 				flags[6] = 1;
+				cout << "Tarefa de exibicao de alarmes bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -363,6 +379,7 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 
 		case 'z':
 			bResult = SetEvent(hEventZ);
+			cout << "Console de alarme limpo" << endl;
 		
 			if (!bResult) {
 				cout << "ResetEvent failed. Error type: " << GetLastError();
@@ -388,7 +405,7 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 
 	}
 
-	//CloseHandle(index);
+	_endthreadex((DWORD)index);
 	return 0;
 }
 
@@ -399,8 +416,6 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
 		WaitForSingleObject(hEventESC, INFINITE);
 		EXECUTE = FALSE;
 
-		WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
-
 		for (int i = 0; i < 2; i++) {
 			GetExitCodeThread(hThread[i], &dwExitCode);
 		}
@@ -408,7 +423,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
 		exit;
 		InterEnd = FALSE;
 	}
-	//CloseHandle(index);
+	_endthreadex((DWORD)index);
 	return 0;
 }
 
