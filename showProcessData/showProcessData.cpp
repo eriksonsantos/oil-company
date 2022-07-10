@@ -134,7 +134,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
         exit;
         InterEnd = FALSE;
     }
-    //CloseHandle(index);
+    
     return 0;
 }
 
@@ -151,7 +151,7 @@ unsigned __stdcall  ThreadMain(LPVOID index) {
             cout << generateShowMessage(message) << endl;
 
     }
-    //CloseHandle(index);
+    
     return 0;
 }
 

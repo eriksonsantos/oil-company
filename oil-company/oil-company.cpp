@@ -7,6 +7,8 @@ normalmente.
 
 */
 
+#pragma warning(disable:4996)
+
 #include <iostream>
 #include <Windows.h>
 #include <process.h>
@@ -21,9 +23,18 @@ hEventT,
 hEventR,
 hEventL,
 hEventZ,
-hEventESC;
+hEventESC,
+
+hEventWriteDisk;
 
 HANDLE hThread[2];
+
+char* qtdValuesDisk;
+char* qtdValuesDontReadDisk;
+
+HANDLE hMutexFile;
+HANDLE hQtdValuesDisk, hQtdValuesDontReadDisk;
+HANDLE hSemaphore;
 unsigned dwThreadId;
 
 unsigned __stdcall  ThreadkeyboardInput(LPVOID index);
@@ -33,6 +44,8 @@ bool EXECUTE = TRUE;
 
 #define ProjetsQTD 6
 #define ESC 27
+#define BUF_SIZE 256
+#define MAX_DiskFile 200
 
 using namespace std;
 int main()
@@ -40,8 +53,11 @@ int main()
 	bool bCreateProcess[ProjetsQTD] = { NULL };
 	STARTUPINFO si[ProjetsQTD];
 	PROCESS_INFORMATION pi[ProjetsQTD];
+	string aux;
 	int i;
-
+	hMutexFile  = CreateMutex(NULL, FALSE, L"mutexFile");
+	if (hMutexFile == NULL)
+		cout << "Error when create Mutex. Error type: " << GetLastError() << endl;
 
 	hEventC = CreateEvent(NULL, TRUE, TRUE, L"EventC");
 	if (hEventC == NULL) cout << "CreateEvent C failed. Error type: " << GetLastError();
@@ -69,7 +85,58 @@ int main()
 
 	hEventESC = CreateEvent(NULL, TRUE, FALSE, L"EventESC");
 	if (hEventESC == NULL) cout << "CreateEvent ESC failed. Error type: " << GetLastError();
+
+	hEventWriteDisk = CreateEvent(NULL, FALSE, FALSE, L"EventWriteDisk");
+	if (hEventWriteDisk == NULL) cout << "CreateEvent WriteDisk failed. Error type: " << GetLastError();
+
+	hSemaphore = CreateSemaphore(NULL, 0, MAX_DiskFile, L"SemaphoreDisk");
+
+
+	if (hSemaphore == NULL)
+		cout << "Semaphore failed. Error type: " << GetLastError();
+
+	hQtdValuesDisk = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+		PAGE_READWRITE,
+		0,
+		BUF_SIZE,
+		L"QtdValuesInDisk");
+
+	if (hQtdValuesDisk == NULL)
+		cout << "CreateFileMapping failed. Error type: " << GetLastError();
+
+	qtdValuesDisk = (char*)MapViewOfFile(
+		hQtdValuesDisk,
+		FILE_MAP_WRITE,
+		0,
+		0,
+		BUF_SIZE);
+
+	if (qtdValuesDisk == NULL) cout << "MapViewOfFile failed. Error type: " << GetLastError();
+
+
+	hQtdValuesDontReadDisk = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
+		PAGE_READWRITE,
+		0,
+		BUF_SIZE,
+		L"QtdValuesDontRead");
+
+	if (hQtdValuesDontReadDisk == NULL)
+		cout << "CreateFileMapping failed. Error type: " << GetLastError();
+
+	qtdValuesDontReadDisk = (char*)MapViewOfFile(
+		hQtdValuesDontReadDisk,
+		FILE_MAP_WRITE,
+		0,
+		0,
+		BUF_SIZE);
+
+	if (qtdValuesDontReadDisk == NULL) cout << "MapViewOfFile failed. Error type: " << GetLastError();
+
 	
+	aux = "0";
+	CopyMemory(qtdValuesDisk, aux.c_str(), sizeof(aux.c_str()));
+	CopyMemory(qtdValuesDontReadDisk, aux.c_str(), sizeof(aux.c_str()));
+
 	for (i = 0;i < ProjetsQTD; i++) {
 
 		ZeroMemory(&si[i], sizeof(si[i]));
@@ -77,7 +144,7 @@ int main()
 		ZeroMemory(&pi[i], sizeof(pi[i]));
 	}
 
-
+	
 	bCreateProcess[0] = CreateProcess(
 		L"..\\showDataAlarm\\x64\\Debug\\showDataAlarm.exe",
 		NULL,
@@ -114,7 +181,7 @@ int main()
 		cout << "Thread ID: " << pi[1].dwThreadId << endl;
 	}
 
-	bCreateProcess[2] = CreateProcess(
+	bCreateProcess[3] = CreateProcess(
 		L"..\\showDataOptimization\\x64\\Debug\\showDataOptimization.exe",
 		NULL,
 		NULL,
@@ -126,13 +193,13 @@ int main()
 		&si[2],
 		&pi[2]);
 
-	if (not bCreateProcess[2])   cout << "Error when create Process data exhibition. Error type: " << GetLastError() << endl;
+	if (not bCreateProcess[3])   cout << "Error when create Process data exhibition. Error type: " << GetLastError() << endl;
 	else {
-		cout << "Process Data display process ID: " << pi[2].dwProcessId << endl;
-		cout << "Thread ID: " << pi[2].dwThreadId << endl;
+		cout << "Process Data display process ID: " << pi[3].dwProcessId << endl;
+		cout << "Thread ID: " << pi[3].dwThreadId << endl;
 	}
 
-	bCreateProcess[3] = CreateProcess(
+	bCreateProcess[2] = CreateProcess(
 		L"..\\communicationData\\x64\\Debug\\communicationData.exe",
 		NULL,
 		NULL,
@@ -144,12 +211,12 @@ int main()
 		&si[3],
 		&pi[3]);
 
-	if (not bCreateProcess[3])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
+	if (not bCreateProcess[2])   cout << "Error when create Data Process communication. Error type: " << GetLastError() << endl;
 	else {
-		cout << "Data communication process ID: " << pi[3].dwProcessId << endl;
-		cout << "Thread ID: " << pi[3].dwThreadId << endl;
+		cout << "Data communication process ID: " << pi[2].dwProcessId << endl;
+		cout << "Thread ID: " << pi[2].dwThreadId << endl;
 	}
-
+	
 	cout << endl;
 
 	hThread[0] = (HANDLE)
@@ -200,9 +267,11 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[0] == 1) {
 				bResult = SetEvent(hEventC);
 				flags[0] = 0;
+				cout << "Tarefa de comunicacao dados desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventC);
+				cout << "Tarefa de comunicacao de dados bloqueada" << endl;
 				flags[0] = 1;
 			}
 			if (!bResult) {
@@ -214,10 +283,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[1] == 1) {
 				bResult = SetEvent(hEventO);
 				flags[1] = 0;
+				cout << "Tarefa de retirada de dados de otimizacao desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventO);
 				flags[1] = 1;
+				cout << "Tarefa de retirada de dados de otimizacao bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -228,9 +299,11 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[2] == 1) {
 				bResult = SetEvent(hEventP);
 				flags[2] = 0;
+				cout << "Tarefa de retirada de dados de processo desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventP);
+				cout << "Tarefa de retirada de dados de processo bloqueada" << endl;
 				flags[2] = 1;
 			}
 			if (!bResult) {
@@ -242,10 +315,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[3] == 1) {
 				bResult = SetEvent(hEventA);
 				flags[3] = 0;
+				cout << "Tarefa de retirada de alarmes desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventA);
 				flags[3] = 1;
+				cout << "Tarefa de retirada de alarmes bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -256,10 +331,14 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[4] == 1) {
 				bResult = SetEvent(hEventT);
 				flags[4] = 0;
+				cout << "Tarefa de exibicao de dados de otimizacao desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventT);
 				flags[4] = 1;
+				cout << "Tarefa de exibicao de dados de otimizacao bloqueada" << endl;
+				
+
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -270,10 +349,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[5] == 1) {
 				bResult = SetEvent(hEventR);
 				flags[5] = 0;
+				cout << "Tarefa de exibicao de dados de processo desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventR);
 				flags[5] = 1;
+				cout << "Tarefa de exibicao de dados de otimizacao bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -284,10 +365,12 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 			if (flags[6] == 1) {
 				bResult = SetEvent(hEventL);
 				flags[6] = 0;
+				cout << "Tarefa de exibicao de alarmes desbloqueada" << endl;
 			}
 			else {
 				bResult = ResetEvent(hEventL);
 				flags[6] = 1;
+				cout << "Tarefa de exibicao de alarmes bloqueada" << endl;
 			}
 			if (!bResult) {
 				cout << "SetEvent failed. Error type: " << GetLastError();
@@ -296,6 +379,7 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 
 		case 'z':
 			bResult = SetEvent(hEventZ);
+			cout << "Console de alarme limpo" << endl;
 		
 			if (!bResult) {
 				cout << "ResetEvent failed. Error type: " << GetLastError();
@@ -321,7 +405,7 @@ unsigned __stdcall  ThreadkeyboardInput(LPVOID index) {
 
 	}
 
-	//CloseHandle(index);
+	_endthreadex((DWORD)index);
 	return 0;
 }
 
@@ -332,8 +416,6 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
 		WaitForSingleObject(hEventESC, INFINITE);
 		EXECUTE = FALSE;
 
-		WaitForMultipleObjects(2, hThread, TRUE, INFINITE);
-
 		for (int i = 0; i < 2; i++) {
 			GetExitCodeThread(hThread[i], &dwExitCode);
 		}
@@ -341,7 +423,7 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
 		exit;
 		InterEnd = FALSE;
 	}
-	//CloseHandle(index);
+	_endthreadex((DWORD)index);
 	return 0;
 }
 

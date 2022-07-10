@@ -19,48 +19,68 @@ unsigned __stdcall ThreadRemoveDataProcess(LPVOID index);
 unsigned __stdcall  ThreadRemoveDataAlarm(LPVOID index);
 unsigned __stdcall ThreadRemoveDataOptimization(LPVOID index);
 
-HANDLE Mutex, hMutexFile;
+unsigned __stdcall ThreadVerifyQtdDataDontReadInDiskFile(LPVOID index);
+
+HANDLE Mutex, hMutexFile, hMutexValuesDontRead;
 HANDLE hNamedPipeProcess;
 HANDLE hNamedPipeAlarm;
 
 bool bConnectNamedPipe;
 bool bWriteFile;
 
-HANDLE hTimerOptimization, 
+HANDLE hTimerOptmization,
 hTimerAlarm,
 hTimerProcess;
 
 const int nConvertToMs = 10000;
+BOOL bSucess;
 LARGE_INTEGER Preset;
-bool bSucess;
 
-
-DWORD dwszOutputBufferProcess;
-DWORD dwszOutputBufferAlarm;
-DWORD dwNoBytesRead,
-      dwBytesWritten;
+DWORD dwszOutputBufferProcess,
+    dwszOutputBufferAlarm,
+    dwNoBytesRead,
+    dwBytesWritten,
+    dwBytesRead;
 
 HANDLE hEventC,
 hEventO,
 hEventP,
 hEventA,
 hEventESC,
+hEventWriteDisk,
 
 hDiskFile,
 hEventFullList,
-hSemaphoreDisk;
 
-HANDLE hThreads[7],
+hEventFullFileDisk,
+hSemaphoreDisk,
+
+
+hQtdDataDisk,
+hQtdValuesDontRead;
+
+HANDLE hThreads[8],
 hThreadsCloseProg;
+
 bool EXECUTE = TRUE;
+char* qtdValuesDisk;
+char* qtdDiskValuesDontRead;
+
+string qtdValuesDontRead,posDiskFile;
 
 DWORD dwWaitResult , dwPos;
 
 unsigned __stdcall  ThreadCloseProgram(LPVOID index);
 
 linked_list gLinked_list;
+
+#define MAX_FileDisk 200
+#define Max_SizeList 100
+
+using namespace std;
 int main()
 {
+    qtdValuesDontRead = "0";
 
     srand((unsigned)time(0));
     unsigned dwThreadId;
@@ -82,7 +102,12 @@ int main()
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
 
     hEventFullList = CreateEvent(NULL, FALSE, FALSE, L"EventFullList");
-    if (hEventFullList == NULL) cout << "CreateEvent FullList failed. Error type: " << GetLastError();
+    if (hEventFullList == NULL) 
+        cout << "CreateEvent FullList failed. Error type: " << GetLastError();
+
+    hEventFullFileDisk = CreateEvent(NULL, FALSE, FALSE, L"EventFullFileDisk");
+    if (hEventFullFileDisk == NULL)
+        cout << "CreateEvent FullFileDisk failed. Error type: " << GetLastError();
 
     hEventC = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventC");
     if (hEventC == NULL)
@@ -92,14 +117,23 @@ int main()
     if (hEventESC == NULL)
         cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
 
+    hEventWriteDisk = OpenEvent(EVENT_ALL_ACCESS, TRUE, L"EventWriteDisk");
+    if (hEventWriteDisk == NULL)
+        cout << "Error when OpenEvent. Error type: " << GetLastError() << endl;
+
     Mutex = CreateMutex(NULL, FALSE, NULL);
     if (Mutex == NULL)
         cout << "Error when create Mutex. Error type: " << GetLastError() << endl;
 
-    hMutexFile = OpenMutex(MUTEX_ALL_ACCESS, TRUE, L"mutexFile");
+    Mutex = CreateMutex(NULL, FALSE, NULL);
+    if (Mutex == NULL)
+        cout << "Error when create Mutex. Error type: " << GetLastError() << endl;
 
-    if (hMutexFile == NULL) 
-        cout << "Error when open Mutex. Error type: " << GetLastError() << endl;
+
+    hMutexValuesDontRead = CreateMutex(NULL, FALSE, NULL);
+
+    if (hMutexValuesDontRead == NULL)
+        cout << "Error when create Mutex. Error type: " << GetLastError() << endl;
 
     hDiskFile = CreateFile(L"../DataOptimization.arq", 
                            GENERIC_READ | GENERIC_WRITE,
@@ -111,6 +145,43 @@ int main()
 
     if (hDiskFile == NULL)
         cout << "Error when create File. Error type: " << GetLastError() << endl;
+
+
+    hQtdDataDisk = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS,
+        FALSE,
+        L"QtdValuesInDisk");
+
+    if (hQtdDataDisk == NULL)
+        cout << "Error when  Open FileMapping. Error type: " << GetLastError() << endl;
+
+    qtdValuesDisk = (char*)MapViewOfFile(
+        hQtdDataDisk,
+        FILE_MAP_WRITE,
+        0,
+        0,
+        256);
+
+    if (qtdValuesDisk == NULL)
+        cout << "Error when MapViewOfFile. Error type: " << GetLastError() << endl;
+
+    hQtdValuesDontRead = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS,
+        FALSE,
+        L"QtdValuesDontRead");
+
+    if (hQtdValuesDontRead == NULL)
+        cout << "Error when  Open FileMapping. Error type: " << GetLastError() << endl;
+
+    qtdDiskValuesDontRead = (char*)MapViewOfFile(
+        hQtdValuesDontRead,
+        FILE_MAP_WRITE,
+        0,
+        0,
+        256);
+
+    if (qtdDiskValuesDontRead == NULL)
+        cout << "Error when MapViewOfFile. Error type: " << GetLastError() << endl;
 
     hSemaphoreDisk = OpenSemaphore(SEMAPHORE_ALL_ACCESS, TRUE, L"SemaphoreDisk");
 
@@ -165,6 +236,16 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
+    hThreads[7] = (HANDLE)
+        _beginthreadex(NULL, 0, ThreadVerifyQtdDataDontReadInDiskFile, (LPVOID)7, 0, &dwThreadId);
+
+    if (hThreads[7] == NULL) {
+        cout << "Error when create Thread. Error type: " << GetLastError() << endl;
+    }
+
+
+
+
     hThreadsCloseProg = (HANDLE)
         _beginthreadex(NULL, 0, ThreadCloseProgram, (LPVOID)6, 0, &dwThreadId);
 
@@ -172,25 +253,19 @@ int main()
         cout << "Error when create Thread. Error type: " << GetLastError() << endl;
     }
 
-    
-
-    WaitForSingleObject(hThreads[0], INFINITE);
-    WaitForSingleObject(hThreads[1], INFINITE);
-    WaitForSingleObject(hThreads[2], INFINITE);
-    WaitForSingleObject(hThreads[3], INFINITE);
-    WaitForSingleObject(hThreads[4], INFINITE);
-    WaitForSingleObject(hThreads[5], INFINITE);
+   
+    WaitForMultipleObjects(8,hThreads,TRUE,INFINITE);
 
     WaitForSingleObject(hThreads[6], INFINITE);
 
     WaitForSingleObject(ThreadCloseProgram, INFINITE);
 
-    CloseHandle(hTimerOptimization);
+    CloseHandle(hTimerOptmization);
     CloseHandle(hTimerAlarm);
     CloseHandle(hTimerProcess);
 
 
-    for(int i=0; i< 6;i++)
+    for(int i=0; i< 7;i++)
         CloseHandle(hThreads[i]);
 
     CloseHandle(hEventC);
@@ -210,10 +285,10 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
     string aux;
     DWORD dwWaitResultESC;
     
-    hTimerOptimization = CreateWaitableTimer(NULL, FALSE, NULL);
+    hTimerOptmization = CreateWaitableTimer(NULL, FALSE, NULL);
     
-    if (hTimerOptimization == NULL)
-        cout << "Error when create Timer in ThreadOptimization. Error type: " << GetLastError() << endl;
+    if (hTimerOptmization == NULL)
+        cout << "Error when create Timer. Error type: " << GetLastError() << endl;
 
 
    
@@ -224,9 +299,9 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
 
         Preset.QuadPart = -(period * 1000 * nConvertToMs);
 
-        bSucess = SetWaitableTimer(hTimerOptimization, &Preset, period * 1000, NULL, NULL, FALSE);
+        bSucess = SetWaitableTimer(hTimerOptmization, &Preset, period * 1000, NULL, NULL, FALSE);
         if (bSucess == NULL)
-            cout << "Error in SetWaitableTimer in ThreadOptimization. Error type: " << GetLastError() << endl;
+            cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
         WaitForSingleObject(hEventFullList, INFINITE);
         WaitForSingleObject(hEventC, INFINITE);
@@ -238,22 +313,25 @@ unsigned __stdcall  ThreadOptimization(LPVOID index) {
         gLinked_list.PosInsert(aux, 1);
         
         ReleaseMutex(Mutex);
-        WaitForSingleObject(hTimerOptimization, INFINITE);
+        WaitForSingleObject(hTimerOptmization, INFINITE);
 
     }
 
-    //CloseHandle(index);
+    _endthreadex((DWORD)index);
     return 0;
 }
 unsigned __stdcall  ThreadAlarm(LPVOID index) {
     dataAlarm data;
     string aux;
     DWORD dwWaitResultESC;
-   
+  
     hTimerAlarm = CreateWaitableTimer(NULL, FALSE, NULL);
     if (hTimerAlarm == NULL)
-        cout << "Error when create Timer in ThreadAlarm. Error type: " << GetLastError() << endl;
+        cout << "Error when create Timer. Error type: " << GetLastError() << endl;
     
+    
+
+
     while (EXECUTE) {
 
         srand((unsigned)time(0));
@@ -261,12 +339,13 @@ unsigned __stdcall  ThreadAlarm(LPVOID index) {
 
         Preset.QuadPart = -(period * 1000 * nConvertToMs);
 
+
         bSucess = SetWaitableTimer(hTimerAlarm, &Preset, period * 1000, NULL, NULL, FALSE);
         if (bSucess == NULL)
-            cout << "Error in SetWaitableTimer in ThreadAlarm. Error type: " << GetLastError() << endl;
+            cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
 
-        WaitForSingleObject(hEventFullList, INFINITE);
         WaitForSingleObject(hEventC, INFINITE);
+        WaitForSingleObject(hEventFullList, INFINITE);
         aux = data.GenerateData();
 
         WaitForSingleObject(Mutex, INFINITE);
@@ -299,6 +378,17 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
         cout << "Error in SetWaitableTimer in ThreadProcess. Error type: " << GetLastError() << endl;
 
 
+    hTimerProcess = CreateWaitableTimer(NULL, FALSE, NULL);
+    if (hTimerProcess == NULL)
+        cout << "Error when create Timer. Error type: " << GetLastError() << endl;
+
+    Preset.QuadPart = -(500 * nConvertToMs);
+
+    bSucess = SetWaitableTimer(hTimerProcess, &Preset, 500, NULL, NULL, FALSE);
+    if (bSucess == NULL)
+        cout << "Error in SetWaitableTimer. Error type: " << GetLastError() << endl;
+
+
     while (EXECUTE) {
         WaitForSingleObject(hEventFullList, INFINITE);
         WaitForSingleObject(hEventC, INFINITE);
@@ -322,11 +412,13 @@ unsigned __stdcall  ThreadProcess(LPVOID index) {
 unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
     int tam, type, i;
     string message;
-    DWORD dwWaitResultESC;
+    DWORD dwWaitResultESC, dwPos;
     bool bStatus;
 
+    posDiskFile = "0";
     while (EXECUTE) {
         WaitForSingleObject(hEventO, INFINITE);
+        WaitForSingleObject(hEventFullFileDisk, INFINITE);
         WaitForSingleObject(Mutex, INFINITE);
         
 
@@ -341,11 +433,53 @@ unsigned __stdcall  ThreadRemoveDataOptimization(LPVOID index) {
                 gLinked_list.PosRemove(i + 1);
 
                 WaitForSingleObject(hMutexFile, INFINITE);
+                posDiskFile = qtdValuesDisk;
+                if (stoi(posDiskFile) >= MAX_FileDisk) {
+                    dwPos = SetFilePointer(hDiskFile, 0, NULL, FILE_BEGIN);
+                    if (dwPos == INVALID_SET_FILE_POINTER)
+                        cout << "Error when use SetFilePointer. Error type: " << GetLastError() << endl;
+                  
+
+                    posDiskFile = "0";
+
+                }
+                WaitForSingleObject(hMutexValuesDontRead, INFINITE);
+                qtdValuesDontRead = qtdDiskValuesDontRead;
+                ReleaseMutex(hMutexValuesDontRead);
+
+                if (stoi(qtdValuesDontRead) == 0) {
+                    dwPos = SetFilePointer(hDiskFile, 0, NULL, FILE_BEGIN);
+                    if (dwPos == INVALID_SET_FILE_POINTER)
+                        cout << "Error when use SetFilePointer. Error type: " << GetLastError() << endl;
+
+
+                    posDiskFile = "0";
+
+                }
+
+                posDiskFile = to_string(stoi(posDiskFile) + 1);
+           
+                if(qtdValuesDisk != NULL and posDiskFile.length() > 0)
+                    CopyMemory(qtdValuesDisk, posDiskFile.c_str(),
+                        sizeof(posDiskFile.c_str()));
 
                 bWriteFile = WriteFile(hDiskFile, message.c_str(), message.length(), &dwBytesWritten, NULL);
 
                 if (!bWriteFile)  cout << "Error when Write Disk file. Error type: " << GetLastError() << endl;
                 
+                
+              
+                qtdValuesDontRead = to_string(stoi(qtdValuesDontRead) + 1);
+
+                if (stoi(qtdValuesDontRead) >= MAX_FileDisk)
+                    qtdValuesDontRead = to_string(MAX_FileDisk);
+
+                if (qtdValuesDisk != NULL and qtdValuesDontRead.length() > 0)
+                    CopyMemory(qtdDiskValuesDontRead, qtdValuesDontRead.c_str(),
+                        sizeof(qtdValuesDontRead.c_str()));
+
+               
+                SetEvent(hEventWriteDisk);
                 ReleaseMutex(hMutexFile);
                 ReleaseSemaphore(hSemaphoreDisk, 1, NULL);
                 tam--;
@@ -478,6 +612,43 @@ unsigned __stdcall  ThreadRemoveDataProcess(LPVOID index) {
 
 }
 
+unsigned __stdcall ThreadVerifyQtdDataDontReadInDiskFile(LPVOID index) {
+    int tam, first,i;
+    first = 0;
+    tam = 0;
+    string aux;
+    while (EXECUTE) {
+
+        if (qtdDiskValuesDontRead != NULL) {
+            aux = qtdDiskValuesDontRead;
+            tam = stoi(aux);
+
+        }
+
+        if (tam >= MAX_FileDisk) {
+            if (first == 0) {
+                cout << "A tarefa de retirada de dados de otimizacao foi bloqueada devido ao arquivo em disco estar cheio.\n";
+                first = 1;
+
+            }
+           
+            ResetEvent(hEventFullFileDisk);
+        }
+        else {
+            SetEvent(hEventFullFileDisk);
+
+            if (first == 1) {
+                cout << "A tarefa de retirada de dados de otimizacao foi desbloqueada.\n";
+                first = 0;
+            }
+
+        }
+
+
+    }
+    return 0;
+}
+
 unsigned __stdcall ThreadVerifyListSize(LPVOID index) {
     int tam, first;
     first = 0;
@@ -485,9 +656,9 @@ unsigned __stdcall ThreadVerifyListSize(LPVOID index) {
         WaitForSingleObject(Mutex, INFINITE);
         tam = gLinked_list.getSize();
         
-        if (tam >= 100) {
+        if (tam >= Max_SizeList) {
             if (first == 0) {
-                cout << "A tarefa de comunicacao de dados foi bloqueada.\n";
+                cout << "A tarefa de comunicacao de dados foi bloqueada devido a lista estar cheia.\n";
                 first = 1;
             }
 
@@ -516,8 +687,6 @@ unsigned __stdcall  ThreadCloseProgram(LPVOID index) {
     while (InterEnd) {
         WaitForSingleObject(hEventESC, INFINITE);
         EXECUTE = FALSE;
-
-        //WaitForMultipleObjects(5, hThreads, TRUE, INFINITE);
 
         for (int i = 0; i < 5; i++) {
             GetExitCodeThread(hThreads[i], &dwExitCode);

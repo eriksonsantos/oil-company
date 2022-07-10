@@ -32,7 +32,8 @@ string linked_list::getValue(int pos) {
     Node* p = begin;
     for (int i = 0; i < pos; i += 1, p = p->prox);
 
-    return(p->data);
+    if(not p->data.empty())
+        return(p->data);
     
 }
 
